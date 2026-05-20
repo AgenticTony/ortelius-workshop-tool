@@ -1,53 +1,78 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import Response
+from sqlalchemy.orm import Session
 
 from app.models import AnalysisResult
-from app.routes.sessions import sessions
-from app.routes.ideas import ideas
+from app.models.db_models import SessionDB, IdeaDB, AnalysisDB
 from app.services.claude_service import analyse_ideas
 from app.services.pdf_service import generate_pdf
+from app.database import SessionLocal
 
 router = APIRouter(tags=["analysis"])
 
-analysis_results: dict[str, AnalysisResult] = {}
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 @router.post("/sessions/{session_id}/analyse", response_model=AnalysisResult)
-def run_analysis(session_id: str):
-    if session_id not in sessions:
+def run_analysis(session_id: str, db: Session = Depends(get_db)):
+    session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    session_ideas = ideas.get(session_id, [])
-    if not session_ideas:
+    db_ideas = db.query(IdeaDB).filter(IdeaDB.session_id == session_id).all()
+    if not db_ideas:
         raise HTTPException(status_code=400, detail="No ideas to analyse")
 
-    session = sessions[session_id]
-
     idea_dicts = [
-        {
-            "id": idea.id,
-            "participant_id": idea.participant_id,
-            "content": idea.content,
-        }
-        for idea in session_ideas
+        {"id": idea.id, "participant_id": idea.participant_id, "content": idea.content}
+        for idea in db_ideas
     ]
 
     result = analyse_ideas(session_id, session.framework, idea_dicts)
-    analysis_results[session_id] = result
+
+    db_analysis = AnalysisDB(
+        session_id=session_id,
+        framework=result.framework,
+        categories=result.categories.model_dump(),
+        key_themes=result.key_themes,
+        decisions_made=result.decisions_made,
+        open_questions=result.open_questions,
+        recommended_next_steps=result.recommended_next_steps,
+    )
+    db.add(db_analysis)
+    session.status = "analysed"
+    db.commit()
+
     return result
 
 
 @router.get("/sessions/{session_id}/report")
-def download_report(session_id: str):
-    if session_id not in sessions:
+def download_report(session_id: str, db: Session = Depends(get_db)):
+    session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
+    if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
-    if session_id not in analysis_results:
+    db_analysis = db.query(AnalysisDB).filter(AnalysisDB.session_id == session_id).first()
+    if not db_analysis:
         raise HTTPException(status_code=400, detail="No analysis found — run /analyse first")
 
-    result = analysis_results[session_id]
-    pdf_bytes = generate_pdf(result)
+    result = AnalysisResult(
+        session_id=session_id,
+        framework=db_analysis.framework,
+        categories=db_analysis.categories,
+        key_themes=db_analysis.key_themes,
+        decisions_made=db_analysis.decisions_made,
+        open_questions=db_analysis.open_questions,
+        recommended_next_steps=db_analysis.recommended_next_steps,
+    )
 
+    pdf_bytes = generate_pdf(result)
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
