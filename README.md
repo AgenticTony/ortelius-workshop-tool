@@ -45,3 +45,32 @@ _Coming soon — backend and frontend setup guides will be added in Week 3._
 - Weeks 5–8: Core development
 - Weeks 9–10: Testing and QA
 - Weeks 11–12: Final demo and documentation
+
+For the full 12-week project, here's everything:
+
+  Foundation (Steps 1-4) — Weeks 3-4
+  1. FastAPI skeleton
+  2. Pydantic models
+  3. Routes (sessions, ideas)
+  4. Config and env vars
+
+  Core Features (Steps 5-7) — Weeks 5-6
+  5. Claude integration (clustering + summarisation)
+  6. PDF generation (ReportLab)
+  7. Wire up analysis route (one-click AI → PDF)
+
+  Production Readiness (Steps 8-11) — Weeks 7-8
+  8. Database — swap in-memory dicts for PostgreSQL or Firebase
+  9. Evaluation dataset — test workshop inputs to measure AI accuracy (target: 80%)
+  10. Error handling — proper error responses, edge cases, input sanitisation
+  11. Prompt tuning — iterate on Claude prompts against the evaluation dataset
+
+  Testing & Polish (Steps 12-14) — Weeks 9-10
+  12. Backend tests — unit tests for routes, services, models
+  13. Integration testing with frontend — Mohand's Flutter app hitting your API
+  14. User testing with Ortelius consultants — real feedback
+
+  Final Delivery (Steps 15-16) — Weeks 11-12
+  15. Docker + deployment — containerise, deploy (Azure?)
+  16. Documentation — README, setup guide, API reference, architecture diagram
+

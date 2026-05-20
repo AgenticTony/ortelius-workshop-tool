@@ -1,0 +1,14 @@
+from fastapi import FastAPI
+
+from app.routes import sessions, ideas, analysis
+
+app = FastAPI(title="Workshop Tool API", version="0.1.0")
+
+app.include_router(sessions.router)
+app.include_router(ideas.router)
+app.include_router(analysis.router)
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "ok", "service": "workshop-tool"}
