@@ -5,13 +5,13 @@ from pydantic import BaseModel, Field
 
 
 class IdeaCreate(BaseModel):
-    """Request body for submitting an idea."""
     participant_id: str
-    content: str
+    participant_name: str = Field(default="", min_length=0, max_length=100)
+    content: str = Field(min_length=1, max_length=2000)
+    category: str | None = None
 
 
 class Idea(IdeaCreate):
-    """Full idea object returned in responses."""
     id: str = Field(default_factory=lambda: uuid4().hex)
     session_id: str
     votes: int = 0

@@ -1,23 +1,15 @@
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session as DBSession
 
+from app.dependencies import get_db
 from app.models import IdeaCreate, Idea
 from app.models.db_models import SessionDB, IdeaDB
-from app.database import SessionLocal
 
 router = APIRouter(prefix="/sessions/{session_id}/ideas", tags=["ideas"])
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 @router.post("", response_model=Idea)
-def submit_idea(session_id: str, body: IdeaCreate, db: Session = Depends(get_db)):
+def submit_idea(session_id: str, body: IdeaCreate, db: DBSession = Depends(get_db)):
     session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -26,30 +18,26 @@ def submit_idea(session_id: str, body: IdeaCreate, db: Session = Depends(get_db)
     db.add(idea)
     db.commit()
     db.refresh(idea)
-    return Idea(
-        id=idea.id,
-        session_id=idea.session_id,
-        participant_id=idea.participant_id,
-        content=idea.content,
-        votes=idea.votes,
-        created_at=idea.created_at,
-    )
+    return _to_idea(idea)
 
 
 @router.get("", response_model=list[Idea])
-def list_ideas(session_id: str, db: Session = Depends(get_db)):
+def list_ideas(session_id: str, db: DBSession = Depends(get_db)):
     session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
     ideas = db.query(IdeaDB).filter(IdeaDB.session_id == session_id).all()
-    return [
-        Idea(
-            id=idea.id,
-            session_id=idea.session_id,
-            participant_id=idea.participant_id,
-            content=idea.content,
-            votes=idea.votes,
-            created_at=idea.created_at,
-        )
-        for idea in ideas
-    ]
+    return [_to_idea(idea) for idea in ideas]
+
+
+def _to_idea(idea: IdeaDB) -> Idea:
+    return Idea(
+        id=idea.id,
+        session_id=idea.session_id,
+        participant_id=idea.participant_id,
+        participant_name=idea.participant_name,
+        category=idea.category,
+        content=idea.content,
+        votes=idea.votes,
+        created_at=idea.created_at,
+    )
