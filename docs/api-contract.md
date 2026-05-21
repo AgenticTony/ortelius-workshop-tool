@@ -43,6 +43,7 @@ Real-time idea sync goes through Firebase. AI analysis and PDF generation go thr
 | POST | `/sessions` | Create a new workshop session |
 | GET | `/sessions/{session_id}` | Get session details |
 | POST | `/sessions/{session_id}/join?name=...` | Participant joins session |
+| POST | `/sessions/join/{access_code}` | Join via short access code |
 
 ### Ideas
 
@@ -58,6 +59,7 @@ Real-time idea sync goes through Firebase. AI analysis and PDF generation go thr
 | Method | Path | Description | Request Body | Response |
 |--------|------|-------------|--------------|----------|
 | POST | `/sessions/{session_id}/analyse` | Run AI clustering + summarisation | None — backend reads ideas from Firebase | `AnalysisResult` JSON |
+| GET | `/sessions/{session_id}/analysis` | Fetch stored analysis results (no re-run) | None | `AnalysisResult` JSON |
 | GET | `/sessions/{session_id}/report` | Download generated PDF | None | PDF file (binary) |
 
 ## Core Data Models
@@ -70,12 +72,14 @@ Real-time idea sync goes through Firebase. AI analysis and PDF generation go thr
   "topic": "string",
   "framework": "swot | pestel | custom",
   "custom_categories": ["string"],
+  "access_code": "string (6-char, generated on creation)",
   "status": "active | closed | analysed",
   "created_at": "ISO 8601",
   "participants": [
     {
       "id": "uuid",
-      "name": "string"
+      "name": "string",
+      "joined_at": "ISO 8601"
     }
   ]
 }
@@ -88,6 +92,8 @@ Real-time idea sync goes through Firebase. AI analysis and PDF generation go thr
   "id": "uuid",
   "session_id": "uuid",
   "participant_id": "uuid",
+  "participant_name": "string",
+  "category": "string | null",
   "content": "string",
   "votes": 0,
   "created_at": "ISO 8601"
@@ -96,35 +102,17 @@ Real-time idea sync goes through Firebase. AI analysis and PDF generation go thr
 
 ### Analysis Result
 
+Categories are dynamic — keys match the framework's category names. Examples for SWOT and PESTEL:
+
 ```json
 {
   "session_id": "uuid",
   "framework": "swot",
   "categories": {
-    "strengths": [
-      {
-        "idea_id": "uuid",
-        "summary": "string"
-      }
-    ],
-    "weaknesses": [
-      {
-        "idea_id": "uuid",
-        "summary": "string"
-      }
-    ],
-    "opportunities": [
-      {
-        "idea_id": "uuid",
-        "summary": "string"
-      }
-    ],
-    "threats": [
-      {
-        "idea_id": "uuid",
-        "summary": "string"
-      }
-    ]
+    "strengths": [{"idea_id": "uuid", "summary": "string"}],
+    "weaknesses": [{"idea_id": "uuid", "summary": "string"}],
+    "opportunities": [{"idea_id": "uuid", "summary": "string"}],
+    "threats": [{"idea_id": "uuid", "summary": "string"}]
   },
   "key_themes": ["string"],
   "decisions_made": ["string"],
@@ -132,6 +120,8 @@ Real-time idea sync goes through Firebase. AI analysis and PDF generation go thr
   "recommended_next_steps": ["string"]
 }
 ```
+
+For a PESTEL session, `categories` would contain keys: `political`, `economic`, `social`, `technological`, `environmental`, `legal`. For a custom framework, keys match whatever categories the facilitator defined.
 
 ## Firebase Firestore Structure
 
