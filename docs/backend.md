@@ -51,7 +51,7 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 ### Step 2 — Pydantic models
 - [x] `Session` model (id, topic, framework, **access_code**, status, created_at)
 - [x] `Idea` model (id, session_id, participant_id, **participant_name**, **category**, content, votes, created_at)
-- [ ] `Participant` model needs `joined_at` field (per agreed spec — currently missing)
+- [x] `Participant` model with `joined_at` field (per agreed spec)
 - [x] `AnalysisResult` model with SWOT categories, key themes, decisions, questions, next steps
 - [x] Each clustered idea references the original `idea_id` (provenance traceability — Ortelius governance requirement)
 - [x] `JoinResponse` model — returns just `participant_id` (decision 2B)

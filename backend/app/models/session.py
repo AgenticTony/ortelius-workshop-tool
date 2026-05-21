@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 class Participant(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().hex)
     name: str
+    joined_at: datetime = Field(default_factory=datetime.now)
 
 
 class SessionCreate(BaseModel):

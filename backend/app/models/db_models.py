@@ -17,6 +17,7 @@ class ParticipantDB(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: uuid.uuid4().hex)
     session_id: Mapped[str] = mapped_column(String, ForeignKey("sessions.id"))
     name: Mapped[str] = mapped_column(String)
+    joined_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
 class SessionDB(Base):
