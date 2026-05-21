@@ -6,6 +6,8 @@
 - **Stack:** Python + FastAPI, Anthropic Claude API, ReportLab, PostgreSQL (Supabase), Firebase Firestore (for real-time sync)
 - **Integrates with:** Mohand's Flutter frontend (mobile + web)
 
+> **Companion doc:** Production-readiness work and the "demo-grade vs prod-grade" tagging is tracked separately in `production-readiness.md`. This doc focuses on phase-by-phase tasks aligned to the Ortelius schedule.
+
 ---
 
 ## How to use this document
@@ -14,6 +16,19 @@
 - Tick items as you complete them; keep this file updated in the repo
 - Reference current week's items in your Friday weekly status reports
 - **"Why it matters"** notes flag the portfolio-relevant work for interviews
+
+---
+
+## Christian's feedback (21 May 2026) — what shifted
+
+Christian's reply to the workshop-examples email pushed two things:
+
+1. **Template-driven, not framework-hardcoded.** The tool should "accept any matrix-form template containing a description of what each category means." So SWOT and PESTEL become *configurations*, not hardcoded labels.
+2. **Per-category descriptions matter.** Categories need a `description` field, not just a `name`. His phrase: *"beskrivning av innehållet."*
+
+He'll send real workshop example material next week. Don't lock framework descriptions in until that lands — refactor the *structure* now, refine the *content* when examples arrive.
+
+This adds **Step 9b** in Phase 2 (the framework refactor) and ripples small changes through Steps 7, 8, 11, 18.
 
 ---
 
@@ -33,6 +48,7 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 | 8 | QR codes | Frontend generates | N/A |
 | 9 | Service layer | Add `firestore_service.py` for cleaner separation | [ ] |
 | 10 | Backend folder | `backend/` | [x] |
+| 11 | Framework system | Pluggable via `FrameworkConfig` (Christian's feedback) | [ ] |
 
 ---
 
@@ -90,6 +106,11 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 - [x] Mix clear inputs with intentionally vague/short ones (eval-012: single-word inputs, the failure mode)
 - [x] Write `eval/run_eval.py` — loads the dataset, runs clustering, prints per-case and overall accuracy
 - [x] Pipeline runs end-to-end in mock mode (29% baseline — the floor). Live mode with `--live` flag.
+- [x] **BART-large-MNLI runner** (`--bart` flag) — zero-shot comparison model, free and local
+- [x] **Baseline accuracy comparison:**
+  - Mock (everything → strengths): 28.9%
+  - BART-large-MNLI (zero-shot, no context): 68.9%
+  - Claude Sonnet (reasoning with context): 97.8%
 
 > **Why it matters:** This is the single biggest difference between "I used an LLM in a project" and "I evaluated an LLM in a project." Recruiters care about the latter. You'll also catch prompt regressions in seconds instead of finding them post-demo.
 
@@ -103,24 +124,89 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 
 ## Phase 2: Core Features (Weeks 5–6)
 
-**Goal:** End-to-end AI loop working — participant idea in, structured SWOT out, PDF generated. Eval dataset is the measuring stick.
+**Goal:** End-to-end AI loop working — participant idea in, structured output, PDF generated. Eval dataset is the measuring stick. Framework system is now pluggable, not hardcoded.
 
 ### Step 7 — Claude integration
 - [x] `services/claude_service.py` — wraps Anthropic SDK
 - [x] Structured output: prompt enforces JSON matching Pydantic schema
+- [ ] **Refactor:** prompt is now built dynamically from `FrameworkConfig` (see Step 9b)
 - [ ] **Retry-on-parse-failure:** if Claude returns malformed JSON, retry once with a corrective system prompt before giving up
-- [ ] Logging: every Claude call logs prompt version, token count, latency
+- [ ] Logging: every Claude call logs prompt version, framework ID, token count, latency
 
-### Step 8 — Prompt design (v1)
+### Step 8 — Prompt design (framework-aware)
 - [x] System prompt for clustering (SWOT) — in `services/claude_service.py`
+- [ ] **Refactor:** single prompt template with `{categories}` and `{descriptions}` placeholders, filled at runtime from `FrameworkConfig`
 - [ ] System prompt version-controlled in `prompts/clustering_v1.md`
 - [x] Prompt enforces the provenance requirement: output must reference original idea IDs
-- [ ] Prompts include 1–2 few-shot examples of good output
+- [ ] Prompt includes category descriptions, not just names (Christian's "beskrivning av innehållet")
+- [ ] Prompts include 1–2 few-shot examples of good output (one SWOT, one PESTEL)
 
 ### Step 9 — Wire up analysis route
 - [x] `POST /sessions/{id}/analyse` reads ideas, calls Claude, returns structured analysis
 - [x] Save the analysis result against the session
+- [ ] Pass `session.framework` and `session.custom_categories` through to `analyse_ideas()`
 - [ ] Run `eval/run_eval.py` after every prompt change — track accuracy in `eval/results_log.md`
+
+### Step 9b — Pluggable framework system (Christian's feedback)
+
+**What:** Replace SWOT-hardcoding with a `FrameworkConfig` registry. SWOT, PESTEL, and custom frameworks all flow through the same code path.
+
+**Files to change:**
+
+| File | Action | What |
+|------|--------|------|
+| `app/frameworks.py` | NEW | `Category`, `Axis`, `FrameworkConfig` models, registry, prompt builder, `get_framework()` |
+| `app/models/analysis.py` | MODIFY | `categories: dict[str, list[ClusteredIdea]]` instead of hardcoded SWOT fields |
+| `app/models/session.py` | MODIFY | Validator for `framework` + `custom_categories`. Accept `list[str]` (backward compat) or `list[Category]` (richer) |
+| `app/services/claude_service.py` | MODIFY | Delete hardcoded SWOT prompt, use `frameworks.build_system_prompt()` |
+| `app/services/pdf_service.py` | MODIFY | Replace `_build_swot_grid` with `_build_category_grid`. Cycle through 8-colour palette. Use `Axis` metadata if present (else dynamic grid: 2 cols for ≤4, 3 cols for 5+) |
+| `app/routes/analysis.py` | MODIFY | Pass `session.custom_categories` through to the analysis call |
+| `eval/run_eval.py` | MODIFY | Dynamic category flattening |
+| `eval/test_inputs.json` | MODIFY | Add PESTEL test cases (Step 18 covers expansion) |
+
+**Models (new in `frameworks.py`):**
+
+```python
+class Category(BaseModel):
+    id: str           # "S", "P_political", etc. Short stable ID.
+    name: str         # "Strengths"
+    description: str  # "Internal positive factors the organisation can leverage"
+
+class Axis(BaseModel):  # Optional, for matrix-form PDF rendering later
+    label: str         # "Source"
+    values: list[str]  # ["Internal", "External"]
+
+class FrameworkConfig(BaseModel):
+    id: str                                # "swot"
+    name: str                              # "SWOT Analysis"
+    description: str                       # Short description for the prompt context
+    categories: list[Category]
+    axes: dict[str, Axis] | None = None    # Optional. PDF falls back to grid if None.
+```
+
+**Built-in registry (initial):**
+- `swot` — 4 categories, placeholder descriptions (refine when Christian's examples arrive)
+- `pestel` — 6 categories, placeholder descriptions (same)
+- `custom` — built at runtime from `custom_categories` passed at session creation
+
+**Implementation order:**
+- [ ] Create `frameworks.py` with models and registry. No dependencies, new file.
+- [ ] Update `models/analysis.py` to use generic dict. Existing tests pass because they already use plain dicts.
+- [ ] Add validator to `models/session.py` supporting both `list[str]` and `list[Category]`
+- [ ] Refactor `claude_service.py`: delete hardcoded SWOT prompt, inject category descriptions
+- [ ] One-line change in `routes/analysis.py` to pass through `custom_categories`
+- [ ] Refactor `pdf_service.py`: generic `_build_category_grid`
+- [ ] Update eval: dynamic category flattening
+- [ ] Run all 30 existing tests — they must pass unchanged
+
+**Verification:**
+- [ ] `pytest tests/ -v` — all 30 existing tests pass
+- [ ] `python eval/run_eval.py` — mock mode works
+- [ ] `python eval/run_eval.py --live` — SWOT cases still score ~97%
+- [ ] Create session with `framework: "pestel"`, run analysis, download PDF
+- [ ] Create session with `framework: "custom"` and 5 user categories, run analysis, download PDF
+
+> **Why it matters:** This is the schema-driven LLM output pattern that production systems (Instructor, LangChain, OpenAI structured outputs) all use. Worth namechecking in interviews — "the framework registry is data-driven; adding a new clustering framework requires adding a JSON config, not writing code."
 
 ### Step 10 — Firestore service (decision 9B)
 - [ ] `services/firestore_service.py` — reads ideas from Firebase Firestore
@@ -145,15 +231,17 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 
 ### Step 10b — Analysis service (from repo structure in spec)
 - [ ] `services/analysis_service.py` — orchestration layer for the analysis pipeline
-- [ ] Coordinates: read ideas (Firestore) → call Claude → parse result → store (PostgreSQL)
+- [ ] Coordinates: read ideas (Firestore) → resolve framework (frameworks.py) → call Claude → parse result → store (PostgreSQL)
 - [ ] Keeps the analysis route thin — route calls the service, service does the work
 - [ ] Matches the repo structure agreed in `docs/project-final.md`
 
-### Step 11 — PDF generation (ReportLab)
+### Step 11 — PDF generation (framework-aware)
 - [x] `services/pdf_service.py` — takes analysis result, produces consultant-ready PDF
 - [x] Template: cover page, SWOT 2x2 grid, key themes, decisions, questions, next steps, header/footer
+- [ ] **Refactor:** `_build_category_grid` replaces `_build_swot_grid`. Reads category list from `FrameworkConfig`, not hardcoded labels. (See Step 9b.)
 - [ ] Provenance visible in PDF: every clustered idea shows the participant's name in brackets
 - [ ] Performance target: generation completes in <10s for a typical session
+- [ ] **Deferred to future dev:** matrix-form PDF layout using `Axis` metadata
 
 ### Step 12 — Report route
 - [x] `GET /sessions/{id}/report` — returns PDF stream
@@ -163,6 +251,7 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 - [ ] Mohand's Flutter app can: create a session, submit ideas, trigger analysis, download PDF
 - [x] **API contract locked** in `docs/project-final.md` (final agreed version)
 - [ ] Any breaking changes after this point require explicit agreement — no silent renames
+- [ ] Verify Flutter sends `framework` field when creating a session (decision 11)
 
 ### Step 14 — Basic Dockerfile
 - [ ] `Dockerfile` builds and runs the API locally in a container
@@ -172,8 +261,9 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 > **Why it matters:** Doing Docker now (when dependencies are minimal) is 10x easier than doing it in Week 11. You'll thank yourself.
 
 ### Phase 2 success criteria
-- [x] Full happy-path loop works: create session -> submit ideas -> trigger AI -> download PDF
-- [ ] Eval accuracy >=50% on the test dataset (rough baseline to improve from)
+- [x] Full happy-path loop works: create session → submit ideas → trigger AI → download PDF
+- [ ] Pluggable framework system shipped — SWOT and PESTEL both run through the same code path
+- [ ] Eval accuracy ≥50% on the test dataset including PESTEL cases (rough baseline to improve from)
 - [ ] Mohand's Flutter app successfully calls the live AI route end-to-end at least once
 - [ ] Container builds and runs locally
 
@@ -183,6 +273,8 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 
 **Goal:** Move from "works on my machine for the happy path" to "handles real-world inputs and failures gracefully."
 
+> See `production-readiness.md` for the full demo-grade vs prod-grade tagging. The items below are the ones that block Phase 3 specifically.
+
 ### Step 15 — Persistent storage
 - [x] Implement chosen architecture from Phase 1 Step 5
 - [x] Migration from in-memory dicts to actual DB (Supabase PostgreSQL)
@@ -190,36 +282,42 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 - [x] UTC datetimes across all DB models (`datetime.now(timezone.utc)`)
 - [x] Access code with unique constraint and collision guard
 - [ ] Connection pooling, proper async handling
-- [ ] Backup/restore strategy documented (even if just "Firebase handles it")
+- [ ] Alembic migrations from now on (no manual schema changes)
+- [ ] Backup/restore strategy documented (Supabase handles backups, note retention)
 
 ### Step 16 — Error handling and input validation
 - [x] Input validation: name required, content min/max length, access code format
 - [x] Consistent JSON error responses (`{"detail": "message"}` with HTTP status codes)
-- [ ] Custom exception classes (`SessionNotFoundError`, `ClaudeAPIError`, `RateLimitError`, etc.)
+- [ ] Custom exception classes (`SessionNotFoundError`, `ClaudeAPIError`, `RateLimitError`, `FrameworkNotFoundError`)
 - [ ] Global exception handler
 - [ ] Input sanitisation: max ideas per session, max sessions per facilitator
 - [ ] Edge cases tested: empty session, single idea, ideas in mixed languages, very long ideas
+- [ ] Framework validation: unknown framework ID returns 422, custom needs at least 2 categories
 
 ### Step 17 — Rate limiting and cost protection
-- [ ] Rate limit `POST /sessions/{id}/analyse` (it's the expensive endpoint)
+- [ ] Rate limit `POST /sessions/{id}/analyse` (max 3 calls per session, max 100 calls per IP per hour)
 - [ ] Daily token budget cap with logged warnings before hitting it
 - [ ] Document estimated cost per session in README
+- [ ] Idempotency on `/analyse` — same idea-set hash returns cached result, don't re-bill
 
 ### Step 18 — Evaluation dataset v2
 - [ ] Expand to 30+ examples
+- [ ] **Add 5+ PESTEL test cases** (new requirement from framework refactor)
+- [ ] **Add 2+ custom-framework test cases** using Christian's example material (once it arrives)
 - [ ] Add edge cases discovered during integration testing
 - [ ] Categorise by difficulty (clear / ambiguous / adversarial)
-- [ ] Per-category accuracy tracked separately in `eval/results_log.md`
+- [ ] Per-framework, per-category accuracy tracked separately in `eval/results_log.md`
 
 ### Step 19 — Prompt tuning
 - [ ] Iterate on prompts using eval dataset as ground truth
-- [ ] **Target: >=80% accuracy on SWOT clustering** (per planning doc success criteria)
+- [ ] **Target: ≥80% accuracy on each framework (SWOT, PESTEL, custom)**
 - [ ] Each prompt iteration: what changed, why, accuracy delta — logged in `prompts/CHANGELOG.md`
+- [ ] Tune category descriptions against real Ortelius workshop examples (when Christian sends them)
 
-> **Why it matters:** This is the substantive AI engineering work. The accuracy graph from prompt v1 to vN, with a written rationale for each change, is portfolio gold. Most candidates can't show this.
+> **Why it matters:** This is the substantive AI engineering work. The accuracy graph from prompt v1 to vN, with a written rationale for each change, is portfolio gold. Most candidates can't show this. With multiple frameworks tracked separately, you can also show how the same prompt architecture generalises across different category structures.
 
 ### Phase 3 success criteria
-- [ ] AI clustering accuracy >=80% on the eval dataset
+- [ ] AI clustering accuracy ≥80% on SWOT and PESTEL eval datasets
 - [ ] API handles malformed requests, empty sessions, and Claude API failures without crashing
 - [ ] One full session round-trip stays under the planning-doc target (<30s from analysis trigger to PDF available)
 
@@ -231,8 +329,9 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 
 ### Step 20 — Backend tests
 - [ ] Unit tests: routes (using FastAPI `TestClient`), services, models
+- [ ] **New:** unit tests for `frameworks.py` — registry lookups, custom framework construction, prompt builder
 - [ ] Mock Claude API for fast, deterministic tests (don't burn tokens on every test run)
-- [ ] Coverage target: >=70% on `app/` (not chasing 100% — chasing meaningful coverage)
+- [ ] Coverage target: ≥70% on `app/` (not chasing 100% — chasing meaningful coverage)
 - [ ] CI: GitHub Actions running tests on every push
 
 ### Step 21 — Full integration testing
@@ -240,9 +339,11 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 - [ ] Multi-participant scenarios (5+ concurrent ideas, real-time sync stress)
 - [ ] Real-time sync edge cases (participant joins mid-analysis)
 - [ ] PDF rendering across different session sizes (3 ideas vs 50 ideas)
+- [ ] PDF rendering across all supported frameworks (SWOT, PESTEL, custom with 3/5/7 categories)
 
 ### Step 22 — User testing with Ortelius consultants
 - [ ] At least one consultant runs a real workshop session through the tool
+- [ ] Consultant tries at least one custom framework (their own categories, their own descriptions)
 - [ ] Capture feedback structured by: what worked, what broke, what was confusing
 - [ ] Triage feedback: **must-fix** (this week), **nice-to-have** (future-development list)
 
@@ -253,6 +354,7 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 
 ### Phase 4 success criteria
 - [ ] At least one Ortelius consultant confirms the prototype reflects a real workflow
+- [ ] Consultant validates the custom framework flow works for at least one real Ortelius use case
 - [ ] All planning-doc success criteria met
 - [ ] Test suite passes in CI
 
@@ -263,7 +365,7 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 **Goal:** Demo-ready, documented, deployable. Future-proofed for whoever picks this up.
 
 ### Step 24 — Cloud deployment
-- [ ] Deploy existing Docker image to Azure (or chosen cloud)
+- [ ] Deploy existing Docker image to Render / Railway / Azure
 - [ ] Environment variables configured in cloud
 - [ ] HTTPS, custom domain if applicable
 - [ ] Smoke test the production URL with Mohand's app
@@ -273,11 +375,13 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 - [ ] `docs/architecture.md` — system diagram, key decisions, trade-offs
 - [ ] `docs/api_reference.md` — endpoints, request/response examples
 - [ ] `docs/prompt_design.md` — how the AI layer works, why these prompts
-- [ ] `docs/evaluation.md` — how the eval dataset works, accuracy results, methodology
-- [ ] `docs/future_development.md` — what wasn't built, what would be next, what's brittle
+- [ ] **`docs/frameworks.md`** — how to add a new framework (config-only, no code)
+- [ ] `docs/evaluation.md` — how the eval dataset works, accuracy results, methodology, per-framework breakdown
+- [ ] `docs/future_development.md` — what wasn't built, what would be next, what's brittle (incl. matrix-form PDF layout)
 
 ### Step 26 — Demo prep
 - [ ] Demo script (3–5 min walkthrough)
+- [ ] Show at least two frameworks in the demo (SWOT + custom, or SWOT + PESTEL)
 - [ ] Recorded demo video for portfolio use
 - [ ] Slide deck for final presentation
 
@@ -285,6 +389,7 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 - [ ] Honest assessment: what works, what's brittle, what's missing
 - [ ] Concrete next steps Ortelius could take
 - [ ] Cost analysis: estimated monthly run cost at projected usage
+- [ ] Specifically: a UI for consultants to manage framework templates (currently they pass JSON)
 
 ### Phase 5 success criteria
 - [ ] Live URL works
@@ -311,10 +416,11 @@ By the end of the project, this repo should contain:
 
 1. **Eval framework** — measurable AI quality work (rare among junior candidates)
 2. **Prompt CHANGELOG** — iteration history with accuracy data
-3. **API documentation** — proves you can design a clean contract
-4. **Architecture doc** — proves you can make and justify decisions
-5. **Demo video** — for portfolio
-6. **Passing CI** — proves you ship tested code
+3. **Pluggable framework registry** — schema-driven LLM output, production pattern
+4. **API documentation** — proves you can design a clean contract
+5. **Architecture doc** — proves you can make and justify decisions
+6. **Demo video** — for portfolio
+7. **Passing CI** — proves you ship tested code
 
 These are the concrete things to point at in interviews when asked "tell me about an AI project you've built."
 
@@ -338,3 +444,8 @@ These are the concrete things to point at in interviews when asked "tell me abou
 | Shared get_db() duplicated | **Moved to app/dependencies.py** | DRY — one copy, all routes use it. |
 | No firestore_service.py | **Added Step 10 (decision 9B)** | Service layer for reading ideas from Firestore during analysis. |
 | datetime.now (naive) | **UTC datetimes across all DB models** | Consistent timezone handling for multi-region workshops. |
+| SWOT hardcoded everywhere | **Pluggable `FrameworkConfig` registry (Step 9b)** | Christian's feedback (21 May) — any matrix-form template should work, not just SWOT. |
+| Categories were string labels | **Categories now have `id`, `name`, `description`** | Christian's "beskrivning av innehållet" — descriptions give Claude clearer context, also enables custom frameworks the facilitator can fully define. |
+| PESTEL not supported | **Built-in PESTEL config + eval test cases** | Same code path as SWOT once framework system lands. |
+| Custom frameworks not supported | **`framework: "custom"` + `custom_categories` flow** | Any Ortelius client framework can be plugged in without code changes. |
+| Matrix-form PDF layout | **Optional `Axis` metadata in `FrameworkConfig`, rendering deferred to future dev** | Christian flagged "matrisform" but the structure is enough for prototype. |
