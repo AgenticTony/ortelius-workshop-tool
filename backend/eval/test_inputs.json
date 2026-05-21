@@ -1,0 +1,290 @@
+[
+  {
+    "id": "eval-001",
+    "topic": "Improve employee onboarding",
+    "framework": "swot",
+    "ideas": [
+      {"id": "i1", "participant_name": "Anna", "content": "Our buddy system for new hires works really well, everyone loves it"},
+      {"id": "i2", "participant_name": "Bear", "content": "New hires get their laptop on day 2 or 3, not day 1"},
+      {"id": "i3", "participant_name": "Clara", "content": "We could create short video walkthroughs of internal tools"},
+      {"id": "i4", "participant_name": "Diego", "content": "Competitors onboard fully remote in 2 days, we take 2 weeks"},
+      {"id": "i5", "participant_name": "Anna", "content": "The welcome pack with branded merch makes people feel included"},
+      {"id": "i6", "participant_name": "Bear", "content": "There is no structured training plan, it is all ad-hoc"},
+      {"id": "i7", "participant_name": "Clara", "content": "We could assign each new hire a 30-day challenge with milestones"},
+      {"id": "i8", "participant_name": "Diego", "content": "Regulatory requirements for compliance training keep increasing each year"}
+    ],
+    "expected": {
+      "i1": "strengths",
+      "i2": "weaknesses",
+      "i3": "opportunities",
+      "i4": "threats",
+      "i5": "strengths",
+      "i6": "weaknesses",
+      "i7": "opportunities",
+      "i8": "threats"
+    }
+  },
+  {
+    "id": "eval-002",
+    "topic": "Digital transformation at a mid-size manufacturer",
+    "framework": "swot",
+    "ideas": [
+      {"id": "i1", "participant_name": "Erik", "content": "Strong brand recognition in the Nordic market"},
+      {"id": "i2", "participant_name": "Fatima", "content": "Legacy ERP system from 2003, no one dares touch it"},
+      {"id": "i3", "participant_name": "Goran", "content": "Government grants available for industry 4.0 adoption"},
+      {"id": "i4", "participant_name": "Hana", "content": "Supply chain disruption risk if we switch systems mid-production"},
+      {"id": "i5", "participant_name": "Erik", "content": "Experienced workforce with deep domain knowledge"},
+      {"id": "i6", "participant_name": "Fatima", "content": "Data is siloed across 7 different systems"},
+      {"id": "i7", "participant_name": "Goran", "content": "Cloud-based MES could give real-time production visibility"},
+      {"id": "i8", "participant_name": "Hana", "content": "Cybersecurity threats targeting manufacturing are rising fast"},
+      {"id": "i9", "participant_name": "Erik", "content": "Low staff turnover means institutional knowledge is preserved"},
+      {"id": "i10", "participant_name": "Fatima", "content": "No digital skills training budget allocated"}
+    ],
+    "expected": {
+      "i1": "strengths",
+      "i2": "weaknesses",
+      "i3": "opportunities",
+      "i4": "threats",
+      "i5": "strengths",
+      "i6": "weaknesses",
+      "i7": "opportunities",
+      "i8": "threats",
+      "i9": "strengths",
+      "i10": "weaknesses"
+    }
+  },
+  {
+    "id": "eval-003",
+    "topic": "Customer retention strategy",
+    "framework": "swot",
+    "ideas": [
+      {"id": "i1", "participant_name": "Ines", "content": "NPS score of 72, well above industry average"},
+      {"id": "i2", "participant_name": "Johan", "content": "No dedicated customer success team"},
+      {"id": "i3", "participant_name": "Ines", "content": "AI-driven churn prediction models are getting affordable"},
+      {"id": "i4", "participant_name": "Johan", "content": "A major competitor just launched a loyalty programme"},
+      {"id": "i5", "participant_name": "Karin", "content": "Our response time on support tickets is under 4 hours"},
+      {"id": "i6", "participant_name": "Karin", "content": "We only reach out to customers when they complain"}
+    ],
+    "expected": {
+      "i1": "strengths",
+      "i2": "weaknesses",
+      "i3": "opportunities",
+      "i4": "threats",
+      "i5": "strengths",
+      "i6": "weaknesses"
+    }
+  },
+  {
+    "id": "eval-004",
+    "topic": "Sustainability initiative",
+    "framework": "swot",
+    "ideas": [
+      {"id": "i1", "participant_name": "Lars", "content": "Already ISO 14001 certified"},
+      {"id": "i2", "participant_name": "Maria", "content": "No one tracks Scope 3 emissions"},
+      {"id": "i3", "participant_name": "Lars", "content": "EU taxonomy reporting requirements create a first-mover advantage if we comply early"},
+      {"id": "i4", "participant_name": "Maria", "content": "Greenwashing accusations are increasing across the industry"},
+      {"id": "i5", "participant_name": "Nils", "content": "Employee engagement on sustainability is high"},
+      {"id": "i6", "participant_name": "Nils", "content": "Supply chain has zero transparency beyond tier 1"},
+      {"id": "i7", "participant_name": "Lars", "content": "Carbon offset partnerships could be a quick win"},
+      {"id": "i8", "participant_name": "Maria", "content": "New carbon border tax will increase raw material costs"}
+    ],
+    "expected": {
+      "i1": "strengths",
+      "i2": "weaknesses",
+      "i3": "opportunities",
+      "i4": "threats",
+      "i5": "strengths",
+      "i6": "weaknesses",
+      "i7": "opportunities",
+      "i8": "threats"
+    }
+  },
+  {
+    "id": "eval-005",
+    "topic": "Launching a new product line",
+    "framework": "swot",
+    "ideas": [
+      {"id": "i1", "participant_name": "Olga", "content": "Strong R&D team with 3 patents pending"},
+      {"id": "i2", "participant_name": "Olga", "content": "Marketing budget is half of what competitors spend"},
+      {"id": "i3", "participant_name": "Paul", "content": "Growing demand in the 25-35 age segment"},
+      {"id": "i4", "participant_name": "Paul", "content": "A Chinese manufacturer is selling a similar product at 40% less"},
+      {"id": "i5", "participant_name": "Rosa", "content": "Existing distribution network covers 12 countries"},
+      {"id": "i6", "participant_name": "Rosa", "content": "Product-market fit has not been validated yet"},
+      {"id": "i7", "participant_name": "Olga", "content": "Partnership with a well-known influencer could boost launch visibility"},
+      {"id": "i8", "participant_name": "Paul", "content": "Raw material prices are volatile due to geopolitical tensions"}
+    ],
+    "expected": {
+      "i1": "strengths",
+      "i2": "weaknesses",
+      "i3": "opportunities",
+      "i4": "threats",
+      "i5": "strengths",
+      "i6": "weaknesses",
+      "i7": "opportunities",
+      "i8": "threats"
+    }
+  },
+  {
+    "id": "eval-006",
+    "topic": "Remote work policy",
+    "framework": "swot",
+    "ideas": [
+      {"id": "i1", "participant_name": "Sam", "content": "Office costs dropped 30% since going hybrid"},
+      {"id": "i2", "participant_name": "Sam", "content": "Hard to onboard juniors remotely"},
+      {"id": "i3", "participant_name": "Tina", "content": "Could hire from anywhere in the EU now"},
+      {"id": "i4", "participant_name": "Tina", "content": "Teams in different time zones struggle with async communication"},
+      {"id": "i5", "participant_name": "Sam", "content": "Employee satisfaction went up after flexible hours"},
+      {"id": "i6", "participant_name": "Tina", "content": "Company culture feels weaker, people do not know each other"}
+    ],
+    "expected": {
+      "i1": "strengths",
+      "i2": "weaknesses",
+      "i3": "opportunities",
+      "i4": "threats",
+      "i5": "strengths",
+      "i6": "weaknesses"
+    }
+  },
+  {
+    "id": "eval-007",
+    "topic": "Improving internal communication",
+    "framework": "swot",
+    "ideas": [
+      {"id": "i1", "participant_name": "Ulf", "content": "Weekly all-hands has good attendance"},
+      {"id": "i2", "participant_name": "Vera", "content": "Information gets lost between departments"},
+      {"id": "i3", "participant_name": "Ulf", "content": "Could set up a central knowledge base like Notion or Confluence"},
+      {"id": "i4", "participant_name": "Vera", "content": "Staff are resistant to yet another new tool"},
+      {"id": "i5", "participant_name": "Walter", "content": "Leadership is transparent about financials"},
+      {"id": "i6", "participant_name": "Walter", "content": "No formal feedback channel, people just complain on Slack"}
+    ],
+    "expected": {
+      "i1": "strengths",
+      "i2": "weaknesses",
+      "i3": "opportunities",
+      "i4": "threats",
+      "i5": "strengths",
+      "i6": "weaknesses"
+    }
+  },
+  {
+    "id": "eval-008",
+    "topic": "Expanding to new markets",
+    "framework": "swot",
+    "ideas": [
+      {"id": "i1", "participant_name": "Xena", "content": "Product is already localised in 4 languages"},
+      {"id": "i2", "participant_name": "Xena", "content": "No legal team experienced in non-EU regulations"},
+      {"id": "i3", "participant_name": "Yuri", "content": "Southeast Asian market growing at 15% annually"},
+      {"id": "i4", "participant_name": "Yuri", "content": "Currency fluctuation risk in emerging markets"},
+      {"id": "i5", "participant_name": "Xena", "content": "Strong reference customers in adjacent sectors"},
+      {"id": "i6", "participant_name": "Yuri", "content": "Localisation quality is uneven, some translations are machine-generated"},
+      {"id": "i7", "participant_name": "Zara", "content": "Partnership with a local distributor could accelerate market entry"},
+      {"id": "i8", "participant_name": "Zara", "content": "Established local competitors have deep political connections"},
+      {"id": "i9", "participant_name": "Xena", "content": "Scalable cloud infrastructure handles traffic spikes well"},
+      {"id": "i10", "participant_name": "Zara", "content": "Intellectual property protection is weak in some target countries"}
+    ],
+    "expected": {
+      "i1": "strengths",
+      "i2": "weaknesses",
+      "i3": "opportunities",
+      "i4": "threats",
+      "i5": "strengths",
+      "i6": "weaknesses",
+      "i7": "opportunities",
+      "i8": "threats",
+      "i9": "strengths",
+      "i10": "threats"
+    }
+  },
+  {
+    "id": "eval-009",
+    "topic": "Reducing environmental impact of operations",
+    "framework": "swot",
+    "ideas": [
+      {"id": "i1", "participant_name": "Adam", "content": "Solar panels on warehouse roof generate 20% of energy needs"},
+      {"id": "i2", "participant_name": "Adam", "content": "Fleet vehicles still run on diesel"},
+      {"id": "i3", "participant_name": "Beth", "content": "Electric delivery vans are becoming cost-competitive"},
+      {"id": "i4", "participant_name": "Beth", "content": "New emission regulations take effect next year"},
+      {"id": "i5", "participant_name": "Adam", "content": "Waste recycling programme reduced landfill by 60%"},
+      {"id": "i6", "participant_name": "Beth", "content": "No budget allocated for green initiatives this fiscal year"}
+    ],
+    "expected": {
+      "i1": "strengths",
+      "i2": "weaknesses",
+      "i3": "opportunities",
+      "i4": "threats",
+      "i5": "strengths",
+      "i6": "weaknesses"
+    }
+  },
+  {
+    "id": "eval-010",
+    "topic": "Team collaboration tools review",
+    "framework": "swot",
+    "ideas": [
+      {"id": "i1", "participant_name": "Carl", "content": "Slack is universally adopted, no resistance"},
+      {"id": "i2", "participant_name": "Carl", "content": "Too many channels, people miss important messages"},
+      {"id": "i3", "participant_name": "Dana", "content": "Could integrate Slack with project management for automatic updates"},
+      {"id": "i4", "participant_name": "Dana", "content": "Microsoft Teams is pushing hard into our industry, clients expect us to use it"},
+      {"id": "i5", "participant_name": "Carl", "content": "Video conferencing quality is reliable"},
+      {"id": "i6", "participant_name": "Dana", "content": "File sharing is fragmented across Google Drive, Dropbox, and email attachments"},
+      {"id": "i7", "participant_name": "Carl", "content": "AI meeting summaries could save hours per week"},
+      {"id": "i8", "participant_name": "Dana", "content": "Data privacy concerns with some collaboration tools under EU scrutiny"}
+    ],
+    "expected": {
+      "i1": "strengths",
+      "i2": "weaknesses",
+      "i3": "opportunities",
+      "i4": "threats",
+      "i5": "strengths",
+      "i6": "weaknesses",
+      "i7": "opportunities",
+      "i8": "threats"
+    }
+  },
+  {
+    "id": "eval-011",
+    "topic": "Improving customer support",
+    "framework": "swot",
+    "ideas": [
+      {"id": "i1", "participant_name": "Eva", "content": "24/7 coverage already in place"},
+      {"id": "i2", "participant_name": "Eva", "content": "Average resolution time is 48 hours, too slow"},
+      {"id": "i3", "participant_name": "Frank", "content": "Chatbot could handle 40% of tier-1 questions"},
+      {"id": "i4", "participant_name": "Frank", "content": "Customer expectations for instant response are rising"},
+      {"id": "i5", "participant_name": "Eva", "content": "Support staff have deep product knowledge"},
+      {"id": "i6", "participant_name": "Frank", "content": "Knowledge base is outdated, last updated 18 months ago"},
+      {"id": "i7", "participant_name": "Eva", "content": "Self-service portal could reduce ticket volume"},
+      {"id": "i8", "participant_name": "Frank", "content": "Negative reviews on Trustpilot are increasing"}
+    ],
+    "expected": {
+      "i1": "strengths",
+      "i2": "weaknesses",
+      "i3": "opportunities",
+      "i4": "threats",
+      "i5": "strengths",
+      "i6": "weaknesses",
+      "i7": "opportunities",
+      "i8": "threats"
+    }
+  },
+  {
+    "id": "eval-012",
+    "topic": "Startup — should we pivot?",
+    "framework": "swot",
+    "ideas": [
+      {"id": "i1", "participant_name": "Gina", "content": "tech"},
+      {"id": "i2", "participant_name": "Gina", "content": "running out of money"},
+      {"id": "i3", "participant_name": "Gina", "content": "new market"},
+      {"id": "i4", "participant_name": "Gina", "content": "competitors"},
+      {"id": "i5", "participant_name": "Gina", "content": "good team"},
+      {"id": "i6", "participant_name": "Gina", "content": "no product-market fit"}
+    ],
+    "expected": {
+      "i1": "strengths",
+      "i2": "weaknesses",
+      "i3": "opportunities",
+      "i4": "threats",
+      "i5": "strengths",
+      "i6": "weaknesses"
+    }
+  }
+]

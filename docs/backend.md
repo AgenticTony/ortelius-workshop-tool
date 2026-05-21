@@ -85,18 +85,18 @@ These 10 decisions were agreed between Anthony and Mohand. The final spec is in 
 - [x] Confirmed with Mohand
 
 ### Step 6 — Evaluation dataset v1 (CRITICAL — DO NOT DEFER)
-- [ ] Create `eval/test_inputs.json` with 10–15 example workshop inputs
-- [ ] Each input has: workshop topic, list of participant ideas, expected SWOT cluster for each idea
-- [ ] Mix clear inputs with intentionally vague/short ones (the failure modes you need to test)
-- [ ] Write `eval/run_eval.py` — loads the dataset, runs your clustering function, prints per-input and overall accuracy
-- [ ] The script must run end-to-end even if accuracy is 0% on day one. Pipeline first, score later.
+- [x] Create `eval/test_inputs.json` with 12 example workshop inputs (90 ideas total)
+- [x] Each input has: workshop topic, list of participant ideas, expected SWOT cluster for each idea
+- [x] Mix clear inputs with intentionally vague/short ones (eval-012: single-word inputs, the failure mode)
+- [x] Write `eval/run_eval.py` — loads the dataset, runs clustering, prints per-case and overall accuracy
+- [x] Pipeline runs end-to-end in mock mode (29% baseline — the floor). Live mode with `--live` flag.
 
 > **Why it matters:** This is the single biggest difference between "I used an LLM in a project" and "I evaluated an LLM in a project." Recruiters care about the latter. You'll also catch prompt regressions in seconds instead of finding them post-demo.
 
 ### Phase 1 success criteria
 - [x] API responds to `POST /sessions` and `POST /sessions/{id}/ideas`
 - [ ] Mohand can hit your dev API from his Flutter app (smoke test — not full integration yet)
-- [ ] Eval script runs end-to-end against a mocked clustering function
+- [x] Eval script runs end-to-end against a mocked clustering function
 - [x] Architecture decision documented and agreed
 
 ---
