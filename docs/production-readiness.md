@@ -77,7 +77,7 @@ Updated from the earlier plan. Adds per-category descriptions and optional matri
 | `backend/app/routes/analysis.py` | MODIFY | Pass `session.custom_categories` to `analyse_ideas()` |
 | `backend/eval/run_eval.py` | MODIFY | Dynamic category flattening in `run_live` and `run_bart` |
 | `backend/eval/test_inputs.json` | MODIFY | Add 2-3 PESTEL test cases, custom-framework test case when Christian's examples arrive |
-| `backend/docs/backend.md` | MODIFY | Tick items as we go |
+| `backend/docs/backend-roadmap.md` | MODIFY | Tick items as we go |
 
 No changes needed: `tests/`, `conftest.py`, `__init__.py`, DB models (already generic).
 
@@ -260,6 +260,6 @@ Listing these so they're deliberately deferred, not forgotten.
 ## Weekly checklist (Friday end-of-week ritual)
 
 - [ ] Tick completed items above
-- [ ] Push backend.md update to repo
+- [ ] Push backend-roadmap.md update to repo
 - [ ] Update eval results log if AI work happened this week
 - [ ] Update individual weekly status report
