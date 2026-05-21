@@ -75,6 +75,7 @@ FastAPI backend ──stores────> PostgreSQL / Supabase (sessions, analy
 | POST | `/sessions` | Creates a workshop session | Facilitator starts a workshop |
 | GET | `/sessions/{id}` | Gets session details | Facilitator dashboard |
 | POST | `/sessions/{id}/join?name=Anna` | Participant joins with name | No accounts needed |
+| POST | `/sessions/join/{access_code}?name=Anna` | Join via access code | No need to share session ID |
 
 ### Ideas
 
