@@ -203,8 +203,8 @@ class FrameworkConfig(BaseModel):
 - [x] `pytest tests/ -v` — all 30 existing tests pass
 - [x] `python eval/run_eval.py` — mock mode works
 - [x] `python eval/run_eval.py --live` — SWOT cases still score ~97%
-- [ ] Create session with `framework: "pestel"`, run analysis, download PDF
-- [ ] Create session with `framework: "custom"` and 5 user categories, run analysis, download PDF
+- [x] Create session with `framework: "pestel"`, run analysis, download PDF
+- [x] Create session with `framework: "custom"` and 5 user categories, run analysis, download PDF
 
 > **Why it matters:** This is the schema-driven LLM output pattern that production systems (Instructor, LangChain, OpenAI structured outputs) all use. Worth namechecking in interviews — "the framework registry is data-driven; adding a new clustering framework requires adding a JSON config, not writing code."
 
