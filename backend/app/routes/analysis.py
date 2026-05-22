@@ -3,7 +3,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session as DBSession
 
 from app.dependencies import get_db
-from app.models import AnalysisResult
+from app.models import AnalysisResult, ClusteredIdea
 from app.models.db_models import SessionDB, IdeaDB, AnalysisDB
 from app.services.claude_service import analyse_ideas
 from app.services.pdf_service import generate_pdf
@@ -31,12 +31,15 @@ def run_analysis(session_id: str, db: DBSession = Depends(get_db)):
         for idea in db_ideas
     ]
 
-    result = analyse_ideas(session_id, session.framework, idea_dicts)
+    result = analyse_ideas(
+        session_id, session.framework, idea_dicts,
+        custom_categories=session.custom_categories,
+    )
 
     db_analysis = AnalysisDB(
         session_id=session_id,
         framework=result.framework,
-        categories=result.categories.model_dump(),
+        categories=_serialise_categories(result.categories),
         key_themes=result.key_themes,
         decisions_made=result.decisions_made,
         open_questions=result.open_questions,
@@ -96,5 +99,19 @@ def download_report(session_id: str, db: DBSession = Depends(get_db)):
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename=workshop-report-{session_id}.pdf"},
+        headers={
+            "Content-Disposition": (
+                f"attachment; filename=workshop-report-{session_id}.pdf"
+            )
+        },
     )
+
+
+def _serialise_categories(
+    categories: dict[str, list[ClusteredIdea]],
+) -> dict[str, list[dict]]:
+    """Convert ClusteredIdea objects to plain dicts for JSON storage."""
+    return {
+        key: [idea.model_dump() for idea in ideas]
+        for key, ideas in categories.items()
+    }

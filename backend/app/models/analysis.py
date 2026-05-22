@@ -6,17 +6,10 @@ class ClusteredIdea(BaseModel):
     summary: str
 
 
-class SwotCategories(BaseModel):
-    strengths: list[ClusteredIdea] = []
-    weaknesses: list[ClusteredIdea] = []
-    opportunities: list[ClusteredIdea] = []
-    threats: list[ClusteredIdea] = []
-
-
 class AnalysisResult(BaseModel):
     session_id: str
     framework: str
-    categories: SwotCategories
+    categories: dict[str, list[ClusteredIdea]]
     key_themes: list[str] = []
     decisions_made: list[str] = []
     open_questions: list[str] = []

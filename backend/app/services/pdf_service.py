@@ -32,19 +32,48 @@ BORDER_GREY = HexColor("#e2e8f0")
 TEXT_DARK = HexColor("#1a202c")
 TEXT_BODY = HexColor("#2d3748")
 
-SWOT_COLOURS = {
-    "strengths": {"bg": HexColor("#f0fff4"), "accent": HexColor("#38a169"), "text": HexColor("#22543d")},
-    "weaknesses": {"bg": HexColor("#fff5f5"), "accent": HexColor("#e53e3e"), "text": HexColor("#742a2a")},
-    "opportunities": {"bg": HexColor("#ebf8ff"), "accent": HexColor("#3182ce"), "text": HexColor("#2a4365")},
-    "threats": {"bg": HexColor("#fffff0"), "accent": HexColor("#d69e2e"), "text": HexColor("#744210")},
-}
-
-SWOT_LABELS = {
-    "strengths": "Strengths",
-    "weaknesses": "Weaknesses",
-    "opportunities": "Opportunities",
-    "threats": "Threats",
-}
+CATEGORY_COLOURS = [
+    {
+        "bg": HexColor("#f0fff4"),
+        "accent": HexColor("#38a169"),
+        "text": HexColor("#22543d"),
+    },
+    {
+        "bg": HexColor("#fff5f5"),
+        "accent": HexColor("#e53e3e"),
+        "text": HexColor("#742a2a"),
+    },
+    {
+        "bg": HexColor("#ebf8ff"),
+        "accent": HexColor("#3182ce"),
+        "text": HexColor("#2a4365"),
+    },
+    {
+        "bg": HexColor("#fffff0"),
+        "accent": HexColor("#d69e2e"),
+        "text": HexColor("#744210"),
+    },
+    {
+        "bg": HexColor("#faf5ff"),
+        "accent": HexColor("#805ad5"),
+        "text": HexColor("#44337a"),
+    },
+    {
+        "bg": HexColor("#fffaf0"),
+        "accent": HexColor("#dd6b20"),
+        "text": HexColor("#7b341e"),
+    },
+    {
+        "bg": HexColor("#e6fffa"),
+        "accent": HexColor("#319795"),
+        "text": HexColor("#234e52"),
+    },
+    {
+        "bg": HexColor("#fff5f7"),
+        "accent": HexColor("#d53f8c"),
+        "text": HexColor("#702459"),
+    },
+]
 
 PAGE_W, PAGE_H = A4
 MARGIN = 2 * cm
@@ -176,41 +205,59 @@ def _build_cover(styles: dict, analysis: AnalysisResult) -> list:
     return elements
 
 
-def _build_swot_grid(styles: dict, analysis: AnalysisResult) -> list:
+def _build_category_grid(styles: dict, analysis: AnalysisResult) -> list:
     elements = []
-    elements.append(Paragraph("SWOT Analysis", styles["section_heading"]))
+    cat_keys = list(analysis.categories.keys())
+    if not cat_keys:
+        return elements
+
+    framework_label = analysis.framework.upper()
+    elements.append(Paragraph(
+        f"{framework_label} Analysis", styles["section_heading"],
+    ))
     elements.append(HRFlowable(
         width="100%", thickness=1, color=ACCENT_BLUE, spaceAfter=12,
     ))
 
-    half_w = (PAGE_W - 2 * MARGIN - 0.5 * cm) / 2
+    num_cols = 2 if len(cat_keys) <= 4 else 3
+    col_w = (PAGE_W - 2 * MARGIN - (num_cols - 1) * 0.5 * cm) / num_cols
+    gap = 0.5 * cm
 
-    def _cell(key: str) -> Paragraph:
-        clustered = getattr(analysis.categories, key, [])
-        colours = SWOT_COLOURS[key]
+    def _title_case(key: str) -> str:
+        return key.replace("_", " ").title()
+
+    def _cell(key: str, idx: int) -> list:
+        colours = CATEGORY_COLOURS[idx % len(CATEGORY_COLOURS)]
+        clustered = analysis.categories.get(key, [])
         items = []
         items.append(Paragraph(
             f'<font color="{colours["text"].hexval()}">'
-            f'<b>{SWOT_LABELS[key]}</b></font>',
+            f"<b>{_title_case(key)}</b></font>",
             styles["sub_heading"],
         ))
         for idea in clustered:
             items.append(Paragraph(
-                f'<font color="{colours["text"].hexval()}">• {idea.summary}</font>',
+                f'<font color="{colours["text"].hexval()}">'
+                f"• {idea.summary}</font>",
                 styles["swot_item"],
             ))
         if not clustered:
             items.append(Paragraph(
-                f'<font color="{MID_GREY.hexval()}">No items identified</font>',
+                f'<font color="{MID_GREY.hexval()}">'
+                f"No items identified</font>",
                 styles["swot_item"],
             ))
         return items
 
-    row1 = [_cell("strengths"), _cell("weaknesses")]
-    row2 = [_cell("opportunities"), _cell("threats")]
+    rows = []
+    for i in range(0, len(cat_keys), num_cols):
+        chunk = cat_keys[i : i + num_cols]
+        row = [_cell(k, i + j) for j, k in enumerate(chunk)]
+        while len(row) < num_cols:
+            row.append([])
+        rows.append(row)
 
-    grid_data = [row1, row2]
-    grid = Table(grid_data, colWidths=[half_w, half_w], hAlign="CENTER")
+    grid = Table(rows, colWidths=[col_w] * num_cols, hAlign="CENTER")
 
     grid_style = [
         ("VALIGN", (0, 0), (-1, -1), "TOP"),
@@ -219,12 +266,18 @@ def _build_swot_grid(styles: dict, analysis: AnalysisResult) -> list:
         ("LEFTPADDING", (0, 0), (-1, -1), 10),
         ("RIGHTPADDING", (0, 0), (-1, -1), 10),
         ("GRID", (0, 0), (-1, -1), 1, BORDER_GREY),
-        # Row colours
-        ("BACKGROUND", (0, 0), (0, 0), SWOT_COLOURS["strengths"]["bg"]),
-        ("BACKGROUND", (1, 0), (1, 0), SWOT_COLOURS["weaknesses"]["bg"]),
-        ("BACKGROUND", (0, 1), (0, 1), SWOT_COLOURS["opportunities"]["bg"]),
-        ("BACKGROUND", (1, 1), (1, 1), SWOT_COLOURS["threats"]["bg"]),
     ]
+    for row_idx, row_keys in enumerate(
+        range(0, len(cat_keys), num_cols)
+    ):
+        chunk = cat_keys[row_keys : row_keys + num_cols]
+        for col_idx, key in enumerate(chunk):
+            colour_idx = row_keys + col_idx
+            bg = CATEGORY_COLOURS[colour_idx % len(CATEGORY_COLOURS)]["bg"]
+            grid_style.append(
+                ("BACKGROUND", (col_idx, row_idx), (col_idx, row_idx), bg)
+            )
+
     grid.setStyle(TableStyle(grid_style))
     elements.append(grid)
     elements.append(Spacer(1, 1 * cm))
@@ -264,8 +317,8 @@ def generate_pdf(analysis: AnalysisResult) -> bytes:
     # Cover page (switches to content template internally)
     elements.extend(_build_cover(styles, analysis))
 
-    # SWOT grid
-    elements.extend(_build_swot_grid(styles, analysis))
+    # Category grid
+    elements.extend(_build_category_grid(styles, analysis))
 
     # Text sections
     elements.extend(_build_section(styles, "Key Themes", analysis.key_themes, ACCENT_BLUE))

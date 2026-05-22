@@ -286,5 +286,96 @@
       "i5": "strengths",
       "i6": "weaknesses"
     }
+  },
+  {
+    "id": "eval-013",
+    "topic": "Entering the Nordic healthcare market",
+    "framework": "pestel",
+    "ideas": [
+      {"id": "i1", "participant_name": "Anna", "content": "New EU health data regulation affects how cross-border patient records are shared"},
+      {"id": "i2", "participant_name": "Bear", "content": "Healthcare spending in the Nordics is growing at 4% annually, well above EU average"},
+      {"id": "i3", "participant_name": "Clara", "content": "Ageing population in Finland and Sweden demands more remote care options"},
+      {"id": "i4", "participant_name": "Diego", "content": "Wearable health devices can now monitor 20+ vital signs in real time"},
+      {"id": "i5", "participant_name": "Anna", "content": "Hospital waste disposal regulations tightening in Sweden and Denmark"},
+      {"id": "i6", "participant_name": "Bear", "content": "Medical device certification takes 18-24 months under EU MDR framework"},
+      {"id": "i7", "participant_name": "Clara", "content": "Currency fluctuations between SEK, NOK, and DKK affect cross-border pricing"},
+      {"id": "i8", "participant_name": "Diego", "content": "High digital literacy means Nordic patients expect online booking and digital results"},
+      {"id": "i9", "participant_name": "Anna", "content": "Government tenders for healthcare IT systems require a local partner company"},
+      {"id": "i10", "participant_name": "Bear", "content": "5G rollout across Nordic countries enables real-time telemedicine in rural areas"},
+      {"id": "i11", "participant_name": "Clara", "content": "GDPR compliance for health data requires appointing a dedicated data protection officer"},
+      {"id": "i12", "participant_name": "Diego", "content": "Carbon-neutral operations are becoming a prerequisite for winning public health contracts"}
+    ],
+    "expected": {
+      "i1": "political",
+      "i2": "economic",
+      "i3": "social",
+      "i4": "technological",
+      "i5": "environmental",
+      "i6": "legal",
+      "i7": "economic",
+      "i8": "social",
+      "i9": "political",
+      "i10": "technological",
+      "i11": "legal",
+      "i12": "environmental"
+    }
+  },
+  {
+    "id": "eval-014",
+    "topic": "Electric vehicle charging infrastructure rollout",
+    "framework": "pestel",
+    "ideas": [
+      {"id": "i1", "participant_name": "Erik", "content": "Installation costs per fast-charging station dropped 30% in the last 3 years"},
+      {"id": "i2", "participant_name": "Fatima", "content": "EU mandate requires all new buildings to include EV charging points by 2030"},
+      {"id": "i3", "participant_name": "Goran", "content": "Solid-state batteries could double EV range within 5 years of commercialisation"},
+      {"id": "i4", "participant_name": "Hana", "content": "Range anxiety remains the top concern for potential EV buyers in rural areas"},
+      {"id": "i5", "participant_name": "Erik", "content": "Grid capacity in urban areas is insufficient for mass simultaneous EV charging"},
+      {"id": "i6", "participant_name": "Fatima", "content": "New accessibility standards require all public charging points to serve disabled users"},
+      {"id": "i7", "participant_name": "Goran", "content": "Government subsidies cover up to 50% of charging infrastructure installation costs"},
+      {"id": "i8", "participant_name": "Hana", "content": "Smart charging software can balance grid load by scheduling charges during off-peak hours"},
+      {"id": "i9", "participant_name": "Erik", "content": "Local zoning laws in historic districts restrict where charging stations can be placed"},
+      {"id": "i10", "participant_name": "Fatima", "content": "Company car tax incentives are the biggest driver of corporate EV adoption"}
+    ],
+    "expected": {
+      "i1": "economic",
+      "i2": "political",
+      "i3": "technological",
+      "i4": "social",
+      "i5": "environmental",
+      "i6": "legal",
+      "i7": "economic",
+      "i8": "technological",
+      "i9": "political",
+      "i10": "social"
+    }
+  },
+  {
+    "id": "eval-015",
+    "topic": "AI-powered fintech product launch",
+    "framework": "pestel",
+    "ideas": [
+      {"id": "i1", "participant_name": "Ines", "content": "Open banking APIs are now available from all major Nordic banks"},
+      {"id": "i2", "participant_name": "Johan", "content": "PSD2 regulation requires strong customer authentication for all digital payments"},
+      {"id": "i3", "participant_name": "Ines", "content": "Fintech venture capital funding in the Nordics dropped 40% compared to last year"},
+      {"id": "i4", "participant_name": "Johan", "content": "Gen Z expects financial tools to be embedded in apps they already use daily"},
+      {"id": "i5", "participant_name": "Karin", "content": "The Swedish central bank is piloting a digital currency called the e-krona"},
+      {"id": "i6", "participant_name": "Karin", "content": "Blockchain energy consumption is facing growing environmental scrutiny from regulators"},
+      {"id": "i7", "participant_name": "Ines", "content": "Cross-border transaction fees remain high outside the eurozone, especially SEK to EUR"},
+      {"id": "i8", "participant_name": "Johan", "content": "AI-based fraud detection can reduce false positive alerts by up to 60%"},
+      {"id": "i9", "participant_name": "Karin", "content": "The EU AI Act requires AI-based credit scoring decisions to be fully explainable"},
+      {"id": "i10", "participant_name": "Ines", "content": "New sanctions screening requirements are delaying international bank transfers"}
+    ],
+    "expected": {
+      "i1": "technological",
+      "i2": "legal",
+      "i3": "economic",
+      "i4": "social",
+      "i5": "political",
+      "i6": "environmental",
+      "i7": "economic",
+      "i8": "technological",
+      "i9": "legal",
+      "i10": "political"
+    }
   }
 ]

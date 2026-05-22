@@ -3,7 +3,9 @@ import string
 from datetime import datetime
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+from app.frameworks import get_framework, build_custom_framework
 
 
 class Participant(BaseModel):
@@ -16,6 +18,21 @@ class SessionCreate(BaseModel):
     topic: str
     framework: str = "swot"
     custom_categories: list[str] = []
+
+    @model_validator(mode="after")
+    def validate_framework(self) -> "SessionCreate":
+        if self.framework == "custom":
+            build_custom_framework(self.custom_categories)
+            return self
+
+        try:
+            get_framework(self.framework)
+        except ValueError as e:
+            raise ValueError(str(e)) from e
+
+        if self.custom_categories:
+            self.custom_categories = []
+        return self
 
 
 class Session(SessionCreate):

@@ -1,70 +1,98 @@
 import json
+import logging
 
 import anthropic
 
 from app.config import settings
+from app.frameworks import (
+    FrameworkConfig,
+    get_framework,
+    build_custom_framework,
+    build_system_prompt,
+)
 from app.models import AnalysisResult
+
+logger = logging.getLogger(__name__)
 
 client = anthropic.Anthropic(
     api_key=settings.claude_api_key,
     base_url=settings.claude_base_url,
 )
 
-SWOT_SYSTEM_PROMPT = """You are a workshop analysis assistant for a management consultancy.
-
-Your job is to take a list of ideas submitted by workshop participants and cluster them into a SWOT framework.
-
-Rules:
-- Every idea must be assigned to exactly one category: strengths, weaknesses, opportunities, or threats
-- Each clustered idea must reference the original idea_id
-- Write a short summary for each idea in the context of the category you placed it in
-- Identify 3-5 key themes across all ideas
-- List any explicit decisions the group made
-- List open questions that need follow-up
-- Suggest 3-5 recommended next steps
-
-You MUST respond with valid JSON matching this exact structure:
-{
-  "session_id": "<session_id>",
-  "framework": "swot",
-  "categories": {
-    "strengths": [{"idea_id": "<id>", "summary": "<text>"}],
-    "weaknesses": [{"idea_id": "<id>", "summary": "<text>"}],
-    "opportunities": [{"idea_id": "<id>", "summary": "<text>"}],
-    "threats": [{"idea_id": "<id>", "summary": "<text>"}]
-  },
-  "key_themes": ["<theme1>", "<theme2>"],
-  "decisions_made": ["<decision1>"],
-  "open_questions": ["<question1>"],
-  "recommended_next_steps": ["<step1>"]
-}
-
-Respond ONLY with the JSON object. No markdown, no explanation."""
+CORRECTIVE_PROMPT = (
+    "Your previous response was not valid JSON. "
+    "Return ONLY the JSON object with no markdown formatting, "
+    "no code fences, and no explanation."
+)
 
 
-def analyse_ideas(session_id: str, framework: str, ideas: list[dict]) -> AnalysisResult:
-    """Send ideas to Claude for analysis and return structured result."""
+def _resolve_config(
+    framework: str,
+    custom_categories: list[str] | None,
+) -> FrameworkConfig:
+    """Resolve framework string + optional categories into a FrameworkConfig."""
+    if framework == "custom":
+        return build_custom_framework(custom_categories or [])
+    return get_framework(framework)
+
+
+def _call_claude(
+    system_prompt: str,
+    user_message: str,
+) -> str:
+    """Call Claude API and return raw text. Retries once on bad JSON."""
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=4096,
+        system=system_prompt,
+        messages=[{"role": "user", "content": user_message}],
+    )
+    raw = response.content[0].text.strip()
+
+    try:
+        json.loads(raw)
+        return raw
+    except json.JSONDecodeError:
+        logger.warning("Claude returned invalid JSON, retrying with corrective prompt")
+
+    retry = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=4096,
+        system=system_prompt,
+        messages=[
+            {"role": "user", "content": user_message},
+            {"role": "assistant", "content": raw},
+            {"role": "user", "content": CORRECTIVE_PROMPT},
+        ],
+    )
+    return retry.content[0].text.strip()
+
+
+def analyse_ideas(
+    session_id: str,
+    framework: str,
+    ideas: list[dict],
+    custom_categories: list[str] | None = None,
+) -> AnalysisResult:
+    """Send ideas to Claude for analysis using the resolved framework config."""
+    config = _resolve_config(framework, custom_categories)
+    system_prompt = build_system_prompt(config)
+
     idea_list = "\n".join(
         f"- ID: {idea['id']}, Participant: {idea.get('participant_name', 'Unknown')}, "
         f"Content: {idea['content']}"
         for idea in ideas
     )
 
-    user_message = f"""Session topic: (workshop)
-Framework: {framework}
-
-Participant ideas:
-{idea_list}
-
-Analyse these ideas and cluster them into {framework.upper()} categories."""
-
-    response = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=4096,
-        system=SWOT_SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": user_message}],
+    user_message = (
+        f"Session ID: {session_id}\n"
+        f"Session topic: (workshop)\n"
+        f"Framework: {config.name}\n\n"
+        f"Participant ideas:\n{idea_list}\n\n"
+        f"Analyse these ideas and cluster them into "
+        f"{config.name} categories."
     )
 
-    raw = response.content[0].text
+    raw = _call_claude(system_prompt, user_message)
     parsed = json.loads(raw)
     return AnalysisResult(**parsed)

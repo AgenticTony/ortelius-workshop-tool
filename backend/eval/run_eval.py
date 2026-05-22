@@ -1,5 +1,5 @@
 """
-Eval runner — measures SWOT clustering accuracy.
+Eval runner — measures framework clustering accuracy.
 
 Usage:
     python eval/run_eval.py              # mock mode (fast, no API calls)
@@ -7,7 +7,7 @@ Usage:
     python eval/run_eval.py --bart        # BART-large-MNLI (free, runs locally)
 
 The eval dataset lives in eval/test_inputs.json.
-Each entry has: topic, ideas, expected SWOT category per idea_id.
+Each entry has: topic, ideas, expected category per idea_id.
 
 Scoring: accuracy = correct_category_assignments / total_ideas
 """
@@ -29,22 +29,25 @@ def load_dataset() -> list[dict]:
         return json.load(f)
 
 
-SWOT_LABELS = ["strengths", "weaknesses", "opportunities", "threats"]
+def _case_labels(case: dict) -> list[str]:
+    """Extract unique category labels from a test case's expected values."""
+    return sorted(set(case["expected"].values()))
 
 
 def run_mock(case: dict) -> dict[str, str]:
-    """Mock clustering — assigns everything to 'strengths'.
+    """Mock clustering — assigns everything to the first expected category.
 
-    This is the baseline: ~25% accuracy on a balanced dataset.
+    This is the baseline floor. Accuracy depends on class balance.
     The point is that the pipeline works end-to-end before the AI is good.
     """
-    return {idea["id"]: "strengths" for idea in case["ideas"]}
+    first_label = _case_labels(case)[0]
+    return {idea["id"]: first_label for idea in case["ideas"]}
 
 
 def run_bart(case: dict) -> dict[str, str]:
     """Zero-shot classification using facebook/bart-large-mnli.
 
-    Classifies each idea independently against the 4 SWOT labels.
+    Classifies each idea independently against the case's category labels.
     No context from other ideas — pure label-text matching.
     Free, runs locally, first run downloads ~1.3GB model.
     """
@@ -57,11 +60,12 @@ def run_bart(case: dict) -> dict[str, str]:
         )
 
     classifier = run_bart._classifier
+    labels = _case_labels(case)
     assignments = {}
     for idea in case["ideas"]:
         result = classifier(
             idea["content"],
-            candidate_labels=SWOT_LABELS,
+            candidate_labels=labels,
         )
         assignments[idea["id"]] = result["labels"][0]
     return assignments
@@ -71,16 +75,18 @@ def run_live(case: dict) -> dict[str, str]:
     """Call the real Claude service — costs tokens."""
     from app.services.claude_service import analyse_ideas
 
+    custom_cats = case.get("custom_categories")
     result = analyse_ideas(
         session_id=case["id"],
         framework=case["framework"],
         ideas=case["ideas"],
+        custom_categories=custom_cats if custom_cats else None,
     )
 
     # Flatten all categories into {idea_id: category_name}
     assignments = {}
-    for cat_name in ("strengths", "weaknesses", "opportunities", "threats"):
-        for clustered in getattr(result.categories, cat_name, []):
+    for cat_name, clustered_list in result.categories.items():
+        for clustered in clustered_list:
             assignments[clustered.idea_id] = cat_name
     return assignments
 
