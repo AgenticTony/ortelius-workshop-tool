@@ -1,7 +1,12 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
+
+
+def _utcnow() -> datetime:
+    """Timezone-aware UTC now. Keeps API responses consistent with DB models."""
+    return datetime.now(timezone.utc)
 
 
 class IdeaCreate(BaseModel):
@@ -15,4 +20,4 @@ class Idea(IdeaCreate):
     id: str = Field(default_factory=lambda: uuid4().hex)
     session_id: str
     votes: int = 0
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=_utcnow)

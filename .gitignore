@@ -32,3 +32,10 @@ frontend/.pub/
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated reports
+backend/generated_reports/
+
+# Locally generated test PDFs (manual PDF-generation scratch output)
+backend/test_*report.pdf
+backend/test_db_report.pdf

@@ -1,6 +1,6 @@
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
 
 from pydantic import BaseModel, Field, model_validator
@@ -8,10 +8,15 @@ from pydantic import BaseModel, Field, model_validator
 from app.frameworks import get_framework, build_custom_framework
 
 
+def _utcnow() -> datetime:
+    """Timezone-aware UTC now. Keeps API responses consistent with DB models."""
+    return datetime.now(timezone.utc)
+
+
 class Participant(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().hex)
     name: str
-    joined_at: datetime = Field(default_factory=datetime.now)
+    joined_at: datetime = Field(default_factory=_utcnow)
 
 
 class SessionCreate(BaseModel):
@@ -40,7 +45,7 @@ class Session(SessionCreate):
     access_code: str = ""
     status: str = "active"
     participants: list[Participant] = []
-    created_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class JoinResponse(BaseModel):
