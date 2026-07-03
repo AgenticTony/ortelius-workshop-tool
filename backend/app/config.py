@@ -8,8 +8,12 @@ class Settings(BaseSettings):
     port: int = 8000
 
     # Comma-separated list of allowed CORS origins (Flutter web/app URLs).
+    # Defaults cover common local dev ports; override via CORS_ORIGINS env.
     # "*" is allowed for local dev but should never be used in production.
-    cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    cors_origins: str = (
+        "http://localhost:3000,http://127.0.0.1:3000,"
+        "http://localhost:54687,http://127.0.0.1:54687"
+    )
 
     claude_api_key: str = ""
     claude_base_url: str = "https://api.anthropic.com"
