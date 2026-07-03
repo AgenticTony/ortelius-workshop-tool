@@ -31,7 +31,55 @@ workshop-tool/
 
 ## Setup
 
-_Coming soon — backend and frontend setup guides will be added in Week 3._
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) with the Compose plugin (Docker Desktop includes both)
+
+### Run the stack locally (recommended)
+
+One command brings up Postgres and the API together:
+
+```bash
+docker compose up          # build + start (add --build to force a rebuild)
+```
+
+The API boots once Postgres is healthy, creates its tables if missing, and serves on `http://localhost:8000`.
+
+- Interactive API docs: `http://localhost:8000/docs`
+- Health check: `http://localhost:8000/health`
+
+```bash
+docker compose down        # stop (keeps the database volume)
+docker compose down -v     # stop and wipe the local database
+```
+
+### Set the Claude API key (needed only for AI analysis)
+
+The app boots without it. To run `POST /sessions/{id}/analyse`, provide a key
+either via an environment variable or a `.env` file in the repo root:
+
+```bash
+# .env
+CLAUDE_API_KEY=sk-ant-...
+CORS_ORIGINS=http://localhost:3000
+```
+
+`docker compose up` picks up `.env` automatically.
+
+### Run without Docker (local dev)
+
+```bash
+cd backend
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
+uvicorn app.main:app --reload
+```
+
+Tests use an in-memory SQLite database, so they run with no Postgres running:
+
+```bash
+cd backend && pytest tests/
+```
 
 ## Team
 

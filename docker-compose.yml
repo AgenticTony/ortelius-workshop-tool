@@ -1,0 +1,50 @@
+# Local development stack: API + Postgres in one command.
+#   docker compose up        # bring the stack up
+#   docker compose down      # stop (keeps the db volume)
+#   docker compose down -v   # stop and wipe the database
+#
+# The API boots against this local Postgres by default. To run against the
+# hosted Supabase database instead, point DATABASE_URL at it (e.g. via a
+# .env file) — the container is not coupled to compose.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: workshop
+      POSTGRES_PASSWORD: workshop
+      POSTGRES_DB: workshop
+    ports:
+      - "5432:5432"
+    volumes:
+      - workshop_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U workshop -d workshop"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Local Postgres service declared above.
+      DATABASE_URL: "postgresql://workshop:workshop@db:5432/workshop"
+      # Passed through from the host environment / .env (optional).
+      # The app boots without a key; only /analyse needs it.
+      CLAUDE_API_KEY: ${CLAUDE_API_KEY:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    ports:
+      - "8000:8000"
+    # Container-level healthcheck via the app's /health endpoint.
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  workshop_pgdata:

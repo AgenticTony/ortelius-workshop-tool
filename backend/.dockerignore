@@ -1,0 +1,28 @@
+# Keep the build context small and stop secrets/local state from leaking
+# into image layers.
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Secrets / local env — never bake into an image
+.env
+.env.local
+.env.production
+firebase-credentials.json
+
+# Local test artifacts
+test_*report.pdf
+generated_reports/
+
+# Tooling
+.git/
+.gitignore
+.DS_Store
+Dockerfile
+.dockerignore
