@@ -2,6 +2,18 @@
 
 **Final agreed version — Anthony (Backend) + Mohand (Frontend)**
 
+> ⚠️ **PARTIALLY SUPERSEDED (July 2026) — read this note first.**
+>
+> The sections below that mention **Firebase Firestore, Firebase Auth, Firebase Hosting, `firestore_service.py`, and a "hybrid" Firestore+PostgreSQL architecture are obsolete.** Firestore was never built; the backend reads ideas from PostgreSQL. The original frontend owner (Mohand) has left; Anthony now owns both layers.
+>
+> The **current, authoritative** reality is:
+> - **Single database (PostgreSQL/Supabase).** No Firebase.
+> - **Real-time via SSE** (`GET /sessions/{id}/ideas/stream`), not Firestore.
+> - **Ideas + voting** are REST endpoints (`POST /ideas`, `POST /ideas/{id}/vote`), not Firestore writes.
+> - **Facilitator auth** is a bearer token issued at session creation.
+>
+> For the live contract, see **`docs/api-contract.md`** (updated). For frontend progress, see **`docs/frontend-roadmap.md`**. For backend progress, see **`docs/backend-roadmap.md`**. The remainder of this document is preserved as the original agreed scope; treat the Firebase-specific parts as historical context only.
+
 ---
 
 ## What we're building

@@ -55,3 +55,14 @@ def sample_session_with_participant(client, sample_session):
     session_id = sample_session["id"]
     client.post(f"/sessions/{session_id}/join?name=Anna")
     return sample_session
+
+
+@pytest.fixture
+def auth_headers():
+    """Return a helper that builds Authorization headers from a session dict.
+
+    Usage in tests: ``headers = auth_headers(sample_session)``
+    """
+    def _build(session: dict) -> dict:
+        return {"Authorization": f"Bearer {session['facilitator_token']}"}
+    return _build

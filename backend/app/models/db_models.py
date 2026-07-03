@@ -28,6 +28,9 @@ class SessionDB(Base):
     framework: Mapped[str] = mapped_column(String, default="swot")
     custom_categories: Mapped[dict] = mapped_column(JSON, default=list)
     access_code: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    # SHA-256 hash of the facilitator bearer token. Nullable for back-compat
+    # with sessions created before tokens were introduced.
+    facilitator_token_hash: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
     status: Mapped[str] = mapped_column(String, default="active")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 

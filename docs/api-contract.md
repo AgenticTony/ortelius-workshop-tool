@@ -17,22 +17,34 @@ Innan vi börjar bygga, läs igenom detta och bekräfta att du är nöjd med:
 3. **Firebase-strukturen** — hur idéer lagras i Firestore. Det här är vad du kommer att skriva till och vad jag kommer att läsa från.
 
 4. **Ansvarsfördelning:**
-- Du hanterar idéinmatning och omröstning i realtid via Firebase
-- Jag hanterar sessionsskapande, AI-analys och PDF-generering via API:et
-- Den enda gången Flutter anropar backend är för att: skapa sessioner, gå med i sessioner, utlösa analyser och ladda ner PDF:en
+- Frontend hanterar idéinmatning, omröstning och realtidsvy
+- Backend hanterar sessionsskapande, AI-analys och PDF-generering via API:et
+- Frontend anropar backend för att: skapa sessioner, gå med i sessioner, skicka idéer, rösta, prenumerera på realtidsuppdateringar, utlösa analyser och ladda ner PDF:en
 
 Om något inte fungerar för din sida kan vi ändra det innan någon av oss skriver kod mot det.
 
 ## Architecture Overview
 
 ```
-Flutter frontend ──realtime──> Firebase Firestore (ideas, votes)
-Flutter frontend ──REST──────> FastAPI backend (sessions, analysis, PDF)
-FastAPI backend  ──reads─────> Firebase Firestore (ideas for analysis)
+Flutter frontend ──REST──────> FastAPI backend (sessions, ideas, votes, analysis, PDF)
+Flutter frontend ──SSE───────> FastAPI backend (live idea/vote/participant stream)
+FastAPI backend  ──stores───> PostgreSQL / Supabase (everything)
 FastAPI backend  ──calls─────> Claude API (clustering + summarisation)
 ```
 
-Real-time idea sync goes through Firebase. AI analysis and PDF generation go through the FastAPI backend.
+Real-time updates are delivered via a Server-Sent Events (SSE) stream from the backend. AI analysis and PDF generation also go through the FastAPI backend.
+
+> **Note (July 2026):** The original design used Firebase Firestore for real-time idea sync. Firestore was never built, and the backend already reads ideas from PostgreSQL. We have dropped Firestore entirely and replaced its real-time role with SSE. The architecture is now a single database (PostgreSQL) and a single backend.
+
+## Authentication: facilitator token
+
+`POST /sessions` issues a one-time **facilitator token** in the response body (`facilitator_token`). The frontend must store it securely and send it as `Authorization: Bearer <token>` on the protected routes below. It is never re-served by any other endpoint.
+
+| Route | Auth required |
+|-------|---------------|
+| `POST /sessions/{id}/analyse` | Yes — facilitator token |
+| `GET /sessions/{id}/report` | Yes — facilitator token |
+| All other routes | No |
 
 ## Endpoints
 
@@ -40,7 +52,7 @@ Real-time idea sync goes through Firebase. AI analysis and PDF generation go thr
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/sessions` | Create a new workshop session |
+| POST | `/sessions` | Create a new workshop session (response includes one-time `facilitator_token`) |
 | GET | `/sessions/{session_id}` | Get session details |
 | POST | `/sessions/{session_id}/join?name=...` | Participant joins session |
 | POST | `/sessions/join/{access_code}` | Join via short access code |
@@ -49,18 +61,20 @@ Real-time idea sync goes through Firebase. AI analysis and PDF generation go thr
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/sessions/{session_id}/ideas` | Submit an idea (testing only) |
+| POST | `/sessions/{session_id}/ideas` | Submit an idea |
 | GET | `/sessions/{session_id}/ideas` | List all ideas in session |
+| POST | `/sessions/{session_id}/ideas/{idea_id}/vote` | Upvote an idea (returns updated idea) |
+| GET | `/sessions/{session_id}/ideas/stream` | **SSE** — live stream of `idea_added`, `idea_voted`, `participant_joined` events |
 
-**Note:** In production, Flutter writes ideas directly to Firebase Firestore (see Firebase structure below). The POST endpoint exists for backend testing without the frontend.
+**Note:** Ideas are submitted and read via these REST endpoints; PostgreSQL is the single source of truth. (The earlier "testing only" note for POST is obsolete.)
 
 ### Analysis
 
 | Method | Path | Description | Request Body | Response |
 |--------|------|-------------|--------------|----------|
-| POST | `/sessions/{session_id}/analyse` | Run AI clustering + summarisation | None — backend reads ideas from Firebase | `AnalysisResult` JSON |
+| POST | `/sessions/{session_id}/analyse` | Run AI clustering + summarisation | None — backend reads ideas from DB. **Facilitator token required.** | `AnalysisResult` JSON |
 | GET | `/sessions/{session_id}/analysis` | Fetch stored analysis results (no re-run) | None | `AnalysisResult` JSON |
-| GET | `/sessions/{session_id}/report` | Download generated PDF | None | PDF file (binary) |
+| GET | `/sessions/{session_id}/report` | Download generated PDF | None. **Facilitator token required.** | PDF file (binary) |
 
 ## Core Data Models
 
@@ -81,9 +95,12 @@ Real-time idea sync goes through Firebase. AI analysis and PDF generation go thr
       "name": "string",
       "joined_at": "ISO 8601"
     }
-  ]
+  ],
+  "facilitator_token": "string | null (only present on the POST /sessions response)"
 }
 ```
+
+> `facilitator_token` is returned **once**, on session creation, so the facilitator's client can store it. It is `null` on every other endpoint. Required as `Authorization: Bearer <token>` for `/analyse` and `/report`.
 
 ### Idea
 
@@ -123,29 +140,34 @@ Categories are dynamic — keys match the framework's category names. Examples f
 
 For a PESTEL session, `categories` would contain keys: `political`, `economic`, `social`, `technological`, `environmental`, `legal`. For a custom framework, keys match whatever categories the facilitator defined.
 
-## Firebase Firestore Structure
+## SSE Event Stream (`GET /sessions/{session_id}/ideas/stream`)
 
-Flutter reads and writes ideas here. Backend reads from here for AI analysis.
+A Server-Sent Events stream. The client opens it once and receives events as they happen. Each event is sent as:
 
 ```
-sessions/{session_id}/
-  ├── topic: string
-  ├── framework: string
-  ├── status: string
-  └── participants: array
+event: <type>
+data: <json>
 
-sessions/{session_id}/ideas/{idea_id}
-  ├── participant_id: string
-  ├── participant_name: string
-  ├── content: string
-  ├── votes: number
-  └── created_at: timestamp
 ```
 
-**Rules:**
-- `participant_name` is stored alongside `participant_id` for provenance — the PDF report needs to show who said what
-- `votes` is incremented by Flutter when participants upvote
-- Backend reads this collection when `POST /analyse` is called
+Line comments starting with `:` are heartbeats / connection confirmations — the client should ignore them. Event types:
+
+| Event type | When | `data` payload |
+|------------|------|----------------|
+| `idea_added` | A participant submits an idea | the full `Idea` object |
+| `idea_voted` | An idea is upvoted | `{"idea_id": str, "votes": int}` |
+| `participant_joined` | A participant joins the session | `{"participant_id": str, "name": str, "participant_count": int}` |
+
+**Limitation:** the in-memory event bus requires a single uvicorn worker. Multi-worker deployment needs Postgres `LISTEN/NOTIFY` or an external broker (deferred — see `docs/frontend-roadmap.md`).
+
+## Rate limiting
+
+| Route | Limit | Notes |
+|-------|-------|-------|
+| `POST /sessions/{id}/analyse` | 5 / minute / IP | Protects Claude cost |
+| `POST /sessions/{id}/ideas` | 30 / minute / IP | Guards against idea spam |
+
+Exceeding a limit returns `429 Too Many Requests`.
 
 ## Response Format
 
@@ -157,13 +179,15 @@ All JSON responses follow this structure:
 | Status | Meaning |
 |--------|---------|
 | 200 | Success |
+| 401 | Facilitator token missing or invalid (protected routes) |
 | 404 | Session or resource not found |
 | 422 | Validation error (missing or invalid fields) |
+| 429 | Rate limit exceeded |
 | 500 | Server error |
 
 ## Notes
 
-- Real-time idea sync uses Firebase Firestore — these REST endpoints are for AI analysis and session management only
+- Real-time updates use SSE; everything is stored in PostgreSQL — there is no Firebase dependency
 - All AI responses return structured JSON for auditability
 - Every clustered idea references the original participant (provenance)
 - PDF report endpoint returns `application/pdf` content type, not JSON

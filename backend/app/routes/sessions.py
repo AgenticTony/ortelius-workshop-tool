@@ -5,6 +5,8 @@ from app.dependencies import get_db
 from app.models import SessionCreate, Session, Participant, JoinResponse, JoinByCodeRequest
 from app.models.session import generate_access_code
 from app.models.db_models import SessionDB, ParticipantDB
+from app.security import generate_facilitator_token, hash_token
+from app.services.event_bus import event_bus, EVENT_PARTICIPANT_JOINED
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -12,11 +14,19 @@ router = APIRouter(prefix="/sessions", tags=["sessions"])
 @router.post("", response_model=Session)
 def create_session(body: SessionCreate, db: DBSession = Depends(get_db)):
     code = _unique_access_code(db)
-    db_session = SessionDB(**body.model_dump(), access_code=code)
+    # Issue a facilitator token. Store the hash, return the plaintext once.
+    token = generate_facilitator_token()
+    db_session = SessionDB(
+        **body.model_dump(),
+        access_code=code,
+        facilitator_token_hash=hash_token(token),
+    )
     db.add(db_session)
     db.commit()
     db.refresh(db_session)
-    return _to_session(db_session)
+    session = _to_session(db_session)
+    session.facilitator_token = token
+    return session
 
 
 @router.post("/join/{access_code}", response_model=JoinResponse)
@@ -28,6 +38,7 @@ def join_by_code(access_code: str, body: JoinByCodeRequest, db: DBSession = Depe
     db.add(participant)
     db.commit()
     db.refresh(participant)
+    _publish_participant_joined(db_session.id, participant, db)
     return JoinResponse(participant_id=participant.id)
 
 
@@ -50,6 +61,7 @@ def join_session(session_id: str, name: str = "", db: DBSession = Depends(get_db
     db.add(participant)
     db.commit()
     db.refresh(participant)
+    _publish_participant_joined(session_id, participant, db)
     return JoinResponse(participant_id=participant.id)
 
 
@@ -69,6 +81,17 @@ def _to_session(db_session: SessionDB) -> Session:
         custom_categories=db_session.custom_categories or [],
         access_code=db_session.access_code,
         status=db_session.status,
-        participants=[Participant(id=p.id, name=p.name) for p in db_session.participants],
+        participants=[Participant(id=p.id, name=p.name, joined_at=p.joined_at) for p in db_session.participants],
         created_at=db_session.created_at,
+        # facilitator_token intentionally omitted: only set on the create response.
     )
+
+
+def _publish_participant_joined(session_id: str, participant: ParticipantDB, db: DBSession) -> None:
+    """Broadcast a participant_joined SSE event with the new participant count."""
+    count = db.query(ParticipantDB).filter(ParticipantDB.session_id == session_id).count()
+    event_bus.publish(session_id, EVENT_PARTICIPANT_JOINED, {
+        "participant_id": participant.id,
+        "name": participant.name,
+        "participant_count": count,
+    })

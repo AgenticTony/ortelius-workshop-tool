@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session as DBSession
 
-from app.dependencies import get_db
+from app.dependencies import get_db, get_facilitator
 from app.models import AnalysisResult, ClusteredIdea
+from app.rate_limit import limiter
 from app.models.db_models import SessionDB, IdeaDB, AnalysisDB
 from app.services.claude_service import analyse_ideas
 from app.services.pdf_service import generate_pdf
@@ -12,11 +13,14 @@ router = APIRouter(tags=["analysis"])
 
 
 @router.post("/sessions/{session_id}/analyse", response_model=AnalysisResult)
-def run_analysis(session_id: str, db: DBSession = Depends(get_db)):
-    session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-
+@limiter.limit("5/minute")
+def run_analysis(
+    request: Request,
+    session_id: str,
+    db: DBSession = Depends(get_db),
+    session: SessionDB = Depends(get_facilitator),
+):
+    # get_facilitator already verified the session exists + the caller is authorised.
     db_ideas = db.query(IdeaDB).filter(IdeaDB.session_id == session_id).all()
     if not db_ideas:
         raise HTTPException(status_code=400, detail="No ideas to analyse")
@@ -76,11 +80,11 @@ def get_analysis(session_id: str, db: DBSession = Depends(get_db)):
 
 
 @router.get("/sessions/{session_id}/report")
-def download_report(session_id: str, db: DBSession = Depends(get_db)):
-    session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-
+def download_report(
+    session_id: str,
+    db: DBSession = Depends(get_db),
+    session: SessionDB = Depends(get_facilitator),
+):
     db_analysis = db.query(AnalysisDB).filter(AnalysisDB.session_id == session_id).first()
     if not db_analysis:
         raise HTTPException(status_code=400, detail="No analysis found — run /analyse first")

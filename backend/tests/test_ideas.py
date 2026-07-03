@@ -88,3 +88,39 @@ def test_list_ideas_empty(client, sample_session):
 def test_list_ideas_session_not_found(client):
     response = client.get("/sessions/doesnotexist/ideas")
     assert response.status_code == 404
+
+
+# ── Voting ────────────────────────────────────────────────────
+
+
+def _submit_one_idea(client, session_id, content="An idea") -> dict:
+    resp = client.post(
+        f"/sessions/{session_id}/ideas",
+        json={"participant_id": "p1", "participant_name": "Anna", "content": content},
+    )
+    assert resp.status_code == 200
+    return resp.json()
+
+
+def test_vote_increments_count(client, sample_session):
+    session_id = sample_session["id"]
+    idea = _submit_one_idea(client, session_id)
+    assert idea["votes"] == 0
+
+    r1 = client.post(f"/sessions/{session_id}/ideas/{idea['id']}/vote")
+    assert r1.status_code == 200
+    assert r1.json()["votes"] == 1
+
+    r2 = client.post(f"/sessions/{session_id}/ideas/{idea['id']}/vote")
+    assert r2.json()["votes"] == 2
+
+
+def test_vote_idea_not_found(client, sample_session):
+    session_id = sample_session["id"]
+    r = client.post(f"/sessions/{session_id}/ideas/doesnotexist/vote")
+    assert r.status_code == 404
+
+
+def test_vote_session_not_found(client):
+    r = client.post("/sessions/doesnotexist/ideas/whatever/vote")
+    assert r.status_code == 404
