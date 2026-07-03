@@ -1,5 +1,6 @@
 import json
 import logging
+import time
 
 import anthropic
 
@@ -17,6 +18,7 @@ from app.frameworks import (
     build_system_prompt,
 )
 from app.models import AnalysisResult
+from app.prompts import PROMPT_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +62,17 @@ def _resolve_config(
 def _call_claude(
     system_prompt: str,
     user_message: str,
+    *,
+    framework_id: str,
 ) -> str:
     """Call Claude API and return raw text. Retries once on bad JSON.
 
-    Raises ClaudeAPIError on any upstream Anthropic/network failure so the
-    caller gets a clean 503 instead of an opaque 500.
+    Logs every call (prompt version, framework, tokens, latency, retry) so
+    cost and quality are observable. Raises ClaudeAPIError on any upstream
+    Anthropic/network failure so the caller gets a clean 503.
     """
+    started = time.monotonic()
+    retry_attempted = False
     try:
         response = client.messages.create(
             model=CLAUDE_MODEL,
@@ -81,9 +88,11 @@ def _call_claude(
 
     try:
         json.loads(raw)
+        _log_call(framework_id, response, started, retry_attempted=False)
         return raw
     except json.JSONDecodeError:
         logger.warning("Claude returned invalid JSON, retrying with corrective prompt")
+        retry_attempted = True
 
     try:
         retry = client.messages.create(
@@ -99,7 +108,33 @@ def _call_claude(
     except anthropic.AnthropicError as e:
         logger.warning("Claude API retry call failed: %s", e)
         raise ClaudeAPIError() from e
+    _log_call(framework_id, retry, started, retry_attempted=True)
     return retry.content[0].text.strip()
+
+
+def _log_call(
+    framework_id: str,
+    response: "anthropic.types.Message",
+    started: float,
+    *,
+    retry_attempted: bool,
+) -> None:
+    """Structured log line per Claude call: version, framework, tokens, latency."""
+    usage = getattr(response, "usage", None)
+    input_tokens = getattr(usage, "input_tokens", None) if usage else None
+    output_tokens = getattr(usage, "output_tokens", None) if usage else None
+    latency_ms = int((time.monotonic() - started) * 1000)
+    logger.info(
+        "claude_call prompt_version=%s framework=%s model=%s "
+        "input_tokens=%s output_tokens=%s latency_ms=%d retry=%s",
+        PROMPT_VERSION,
+        framework_id,
+        CLAUDE_MODEL,
+        input_tokens,
+        output_tokens,
+        latency_ms,
+        retry_attempted,
+    )
 
 
 def analyse_ideas(
@@ -107,8 +142,13 @@ def analyse_ideas(
     framework: str,
     ideas: list[dict],
     custom_categories: list[str] | None = None,
+    session_topic: str | None = None,
 ) -> AnalysisResult:
-    """Send ideas to Claude for analysis using the resolved framework config."""
+    """Send ideas to Claude for analysis using the resolved framework config.
+
+    session_topic gives Claude real context (previously hardcoded to
+    "(workshop)"); the analysis route has the session object and passes it.
+    """
     config = _resolve_config(framework, custom_categories)
     system_prompt = build_system_prompt(config)
 
@@ -118,16 +158,17 @@ def analyse_ideas(
         for idea in ideas
     )
 
+    topic = session_topic or "(workshop)"
     user_message = (
         f"Session ID: {session_id}\n"
-        f"Session topic: (workshop)\n"
+        f"Session topic: {topic}\n"
         f"Framework: {config.name}\n\n"
         f"Participant ideas:\n{idea_list}\n\n"
         f"Analyse these ideas and cluster them into "
         f"{config.name} categories."
     )
 
-    raw = _call_claude(system_prompt, user_message)
+    raw = _call_claude(system_prompt, user_message, framework_id=config.id)
     try:
         parsed = json.loads(raw)
     except json.JSONDecodeError as e:
