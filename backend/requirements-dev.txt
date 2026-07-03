@@ -1,0 +1,8 @@
+# Test-only dependencies. Install on top of requirements.txt for local dev / CI:
+#   pip install -r requirements.txt -r requirements-dev.txt
+# Production images only install requirements.txt — these stay out.
+-r requirements.txt
+
+pytest==8.4.1
+httpx==0.28.1
+pytest-mock==3.15.1
