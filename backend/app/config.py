@@ -17,6 +17,9 @@ class Settings(BaseSettings):
 
     claude_api_key: str = ""
     claude_base_url: str = "https://api.anthropic.com"
+    # Model for idea clustering. Sonnet 4.5 balances quality and cost; swap
+    # via CLAUDE_MODEL if Anthropic retires this dated ID.
+    claude_model: str = "claude-sonnet-4-5-20250929"
     database_url: str = ""
     firebase_credentials_path: str = ""
 
