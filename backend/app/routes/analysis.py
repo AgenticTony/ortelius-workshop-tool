@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session as DBSession
 
 from app.dependencies import get_db, get_facilitator
+from app.errors import AnalysisNotFoundError, SessionNotFoundError, WorkshopError
 from app.models import AnalysisResult, ClusteredIdea
 from app.rate_limit import limiter
 from app.models.db_models import SessionDB, IdeaDB, AnalysisDB
@@ -23,7 +24,11 @@ def run_analysis(
     # get_facilitator already verified the session exists + the caller is authorised.
     db_ideas = db.query(IdeaDB).filter(IdeaDB.session_id == session_id).all()
     if not db_ideas:
-        raise HTTPException(status_code=400, detail="No ideas to analyse")
+        raise WorkshopError(
+            "No ideas to analyse",
+            status_code=400,
+            code="no_ideas",
+        )
 
     idea_dicts = [
         {
@@ -62,11 +67,11 @@ def run_analysis(
 def get_analysis(session_id: str, db: DBSession = Depends(get_db)):
     session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise SessionNotFoundError(session_id)
 
     db_analysis = db.query(AnalysisDB).filter(AnalysisDB.session_id == session_id).first()
     if not db_analysis:
-        raise HTTPException(status_code=404, detail="No analysis found — run POST /analyse first")
+        raise AnalysisNotFoundError()
 
     return AnalysisResult(
         session_id=session_id,
@@ -87,7 +92,11 @@ def download_report(
 ):
     db_analysis = db.query(AnalysisDB).filter(AnalysisDB.session_id == session_id).first()
     if not db_analysis:
-        raise HTTPException(status_code=400, detail="No analysis found — run /analyse first")
+        raise WorkshopError(
+            "No analysis found — run /analyse first",
+            status_code=400,
+            code="no_analysis",
+        )
 
     result = AnalysisResult(
         session_id=session_id,

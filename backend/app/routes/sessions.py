@@ -2,6 +2,11 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session as DBSession
 
 from app.dependencies import get_db
+from app.errors import (
+    InvalidAccessCodeError,
+    SessionNotFoundError,
+    AccessCodeCollisionError,
+)
 from app.models import SessionCreate, Session, Participant, JoinResponse, JoinByCodeRequest
 from app.models.session import generate_access_code
 from app.models.db_models import SessionDB, ParticipantDB
@@ -33,7 +38,7 @@ def create_session(body: SessionCreate, db: DBSession = Depends(get_db)):
 def join_by_code(access_code: str, body: JoinByCodeRequest, db: DBSession = Depends(get_db)):
     db_session = db.query(SessionDB).filter(SessionDB.access_code == access_code).first()
     if not db_session:
-        raise HTTPException(status_code=404, detail="Invalid access code")
+        raise InvalidAccessCodeError()
     participant = ParticipantDB(session_id=db_session.id, name=body.name.strip())
     db.add(participant)
     db.commit()
@@ -46,17 +51,18 @@ def join_by_code(access_code: str, body: JoinByCodeRequest, db: DBSession = Depe
 def get_session(session_id: str, db: DBSession = Depends(get_db)):
     db_session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not db_session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise SessionNotFoundError(session_id)
     return _to_session(db_session)
 
 
 @router.post("/{session_id}/join", response_model=JoinResponse)
 def join_session(session_id: str, name: str = "", db: DBSession = Depends(get_db)):
     if not name.strip():
+        # Input validation — keep as HTTPException for FastAPI's native 422 shape.
         raise HTTPException(status_code=422, detail="Name is required")
     db_session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not db_session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise SessionNotFoundError(session_id)
     participant = ParticipantDB(session_id=session_id, name=name.strip())
     db.add(participant)
     db.commit()
@@ -70,7 +76,7 @@ def _unique_access_code(db: DBSession, max_attempts: int = 10) -> str:
         code = generate_access_code()
         if not db.query(SessionDB).filter(SessionDB.access_code == code).first():
             return code
-    raise RuntimeError("Could not generate a unique access code")
+    raise AccessCodeCollisionError()
 
 
 def _to_session(db_session: SessionDB) -> Session:
