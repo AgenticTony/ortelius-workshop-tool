@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/layout.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -51,7 +52,7 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
       appBar: AppBar(title: const Text('Join a workshop')),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 460),
+          constraints: const BoxConstraints(maxWidth: Layout.contentMaxWidth),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Form(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/layout.dart';
 import 'package:go_router/go_router.dart';
 
 /// App entry screen: pick facilitator or participant.
@@ -11,7 +12,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
+          constraints: const BoxConstraints(maxWidth: Layout.contentMaxWidth),
           child: Padding(
             padding: const EdgeInsets.all(32),
             child: Column(

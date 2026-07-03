@@ -172,6 +172,9 @@ class FacilitatorSessionController
     }
   }
 
+  /// Clear the current error (for dismissible banners).
+  void dismissError() => state = state.copyWith(clearError: true);
+
   void _openStream(String sessionId) {
     _sseSub?.cancel();
     state = state.copyWith(connected: false);

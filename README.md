@@ -12,14 +12,19 @@ A lightweight digital tool for capturing, structuring, and summarising workshop 
 
 ## Tech Stack
 
-| Layer             | Technology             |
-| ----------------- | ---------------------- |
-| Frontend          | Flutter (Web + Mobile) |
-| Real-time sync    | Firebase Firestore     |
-| Backend / API     | Python + FastAPI       |
-| AI Analysis       | Anthropic Claude API   |
-| Report Generation | Python (ReportLab)     |
-| Version Control   | GitHub                 |
+| Layer             | Technology                          |
+| ----------------- | ----------------------------------- |
+| Frontend          | Flutter (Web + Mobile), Riverpod    |
+| Real-time sync    | Server-Sent Events (SSE)            |
+| Backend / API     | Python + FastAPI                    |
+| Database          | PostgreSQL (Supabase)               |
+| AI Analysis       | Anthropic Claude API                |
+| Report Generation | Python (ReportLab)                  |
+| Version Control   | GitHub                              |
+
+> Note: the original design used Firebase Firestore for real-time. Firestore
+> was never built, and the backend already reads ideas from PostgreSQL, so
+> Firestore was dropped in favour of SSE. See `docs/frontend-roadmap.md`.
 
 ## Project Structure
 
@@ -81,10 +86,40 @@ Tests use an in-memory SQLite database, so they run with no Postgres running:
 cd backend && pytest tests/
 ```
 
+### Run the frontend (Flutter)
+
+The Flutter app (web + mobile) talks to the backend above. Start the backend
+first (Docker or local), then:
+
+```bash
+cd frontend
+flutter pub get
+flutter run -d chrome       # web (recommended for local dev)
+flutter run                 # macOS desktop / a connected device
+```
+
+The app points at `http://localhost:8000` by default (configured in
+`frontend/.env`). If your backend runs elsewhere, edit `API_BASE_URL` there.
+
+- **Facilitator** flow: create a session (topic + framework + custom
+  categories), share the access code or QR, watch ideas arrive live, run AI
+  analysis, download the PDF report.
+- **Participant** flow: join with the access code + a name, submit ideas, see
+  others' appear live over SSE, and vote.
+
+Flutter checks:
+
+```bash
+cd frontend
+flutter analyze             # static analysis (should be clean)
+flutter test                # widget tests
+flutter build web --release # production web build
+```
+
 ## Team
 
-- Anthony —
-- Mohand —
+- Anthony — Backend & AI
+- Mohand — (Frontend, transferred to Anthony July 2026)
 
 ## Internship Timeline
 
