@@ -1,0 +1,13 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    # Collection-if-with-null-check is a common, readable pattern for building
+    # JSON bodies with optional fields; the null-aware-element alternative is
+    # less obvious. Disable the pedantic suggestion project-wide.
+    strict-casts: true
+
+linter:
+  rules:
+    use_null_aware_elements: false
+    avoid_print: false # scaffold stage; logging will replace print later
