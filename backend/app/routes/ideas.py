@@ -1,15 +1,20 @@
-from fastapi import APIRouter, HTTPException, Depends
+import json
+
+from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.orm import Session as DBSession
 
 from app.dependencies import get_db
 from app.models import IdeaCreate, Idea
+from app.rate_limit import limiter
 from app.models.db_models import SessionDB, IdeaDB
+from app.services.event_bus import event_bus, EVENT_IDEA_ADDED, EVENT_IDEA_VOTED
 
 router = APIRouter(prefix="/sessions/{session_id}/ideas", tags=["ideas"])
 
 
 @router.post("", response_model=Idea)
-def submit_idea(session_id: str, body: IdeaCreate, db: DBSession = Depends(get_db)):
+@limiter.limit("30/minute")
+def submit_idea(request: Request, session_id: str, body: IdeaCreate, db: DBSession = Depends(get_db)):
     session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -18,6 +23,9 @@ def submit_idea(session_id: str, body: IdeaCreate, db: DBSession = Depends(get_d
     db.add(idea)
     db.commit()
     db.refresh(idea)
+
+    # Notify live listeners (SSE) that a new idea landed.
+    event_bus.publish(session_id, EVENT_IDEA_ADDED, _idea_to_dict(idea))
     return _to_idea(idea)
 
 
@@ -28,6 +36,29 @@ def list_ideas(session_id: str, db: DBSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Session not found")
     ideas = db.query(IdeaDB).filter(IdeaDB.session_id == session_id).all()
     return [_to_idea(idea) for idea in ideas]
+
+
+@router.post("/{idea_id}/vote", response_model=Idea)
+def vote_idea(session_id: str, idea_id: str, db: DBSession = Depends(get_db)):
+    """Upvote an idea. v1 is a simple increment; per-participant dedup is future work."""
+    session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    idea = (
+        db.query(IdeaDB)
+        .filter(IdeaDB.id == idea_id, IdeaDB.session_id == session_id)
+        .first()
+    )
+    if not idea:
+        raise HTTPException(status_code=404, detail="Idea not found")
+
+    idea.votes += 1
+    db.commit()
+    db.refresh(idea)
+
+    event_bus.publish(session_id, EVENT_IDEA_VOTED, {"idea_id": idea.id, "votes": idea.votes})
+    return _to_idea(idea)
 
 
 def _to_idea(idea: IdeaDB) -> Idea:
@@ -41,3 +72,25 @@ def _to_idea(idea: IdeaDB) -> Idea:
         votes=idea.votes,
         created_at=idea.created_at,
     )
+
+
+def _idea_to_dict(idea: IdeaDB) -> dict:
+    """Serialize an idea for SSE payloads (JSON-safe)."""
+    return {
+        "id": idea.id,
+        "session_id": idea.session_id,
+        "participant_id": idea.participant_id,
+        "participant_name": idea.participant_name,
+        "category": idea.category,
+        "content": idea.content,
+        "votes": idea.votes,
+        "created_at": idea.created_at.isoformat() if idea.created_at else None,
+    }
+
+
+# Re-exported for the stream router so SSE payloads share one serializer.
+idea_payload = _idea_to_dict
+
+
+def _dumps_event(payload: dict) -> str:
+    return json.dumps(payload, default=str)

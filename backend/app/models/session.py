@@ -46,6 +46,9 @@ class Session(SessionCreate):
     status: str = "active"
     participants: list[Participant] = []
     created_at: datetime = Field(default_factory=_utcnow)
+    # Plaintext facilitator token. Only populated on the create-session
+    # response so the facilitator can store it; never persisted or re-served.
+    facilitator_token: str | None = None
 
 
 class JoinResponse(BaseModel):
