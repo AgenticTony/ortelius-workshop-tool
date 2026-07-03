@@ -2,14 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/health/health_screen.dart';
+import '../features/home/home_screen.dart';
 import '../features/participant/join_screen.dart';
 import '../features/participant/workshop_screen.dart';
+import '../features/facilitator/create_session_screen.dart';
+import '../features/facilitator/facilitator_dashboard_screen.dart';
+import '../features/facilitator/report_screen.dart';
 
-/// App routing. The participant flow is /join -> /workshop.
-/// Facilitator routes arrive in Milestone 4.
+/// App routing. Entry is the role-picker home; from there the facilitator
+/// path is /facilitate/new -> /facilitate -> /facilitate/report, and the
+/// participant path is /join -> /workshop.
 final appRouter = GoRouter(
-  initialLocation: '/join',
+  initialLocation: '/',
   routes: [
+    GoRoute(
+      path: '/',
+      name: 'home',
+      builder: (context, state) => const HomeScreen(),
+    ),
+    // ── Facilitator ──────────────────────────────────────────
+    GoRoute(
+      path: '/facilitate/new',
+      name: 'facilitateNew',
+      builder: (context, state) => const CreateSessionScreen(),
+    ),
+    GoRoute(
+      path: '/facilitate',
+      name: 'facilitate',
+      builder: (context, state) => const FacilitatorDashboardScreen(),
+    ),
+    GoRoute(
+      path: '/facilitate/report',
+      name: 'facilitateReport',
+      builder: (context, state) => const ReportScreen(),
+    ),
+    // ── Participant ──────────────────────────────────────────
     GoRoute(
       path: '/join',
       name: 'join',
@@ -20,7 +47,7 @@ final appRouter = GoRouter(
       name: 'workshop',
       builder: (context, state) => const WorkshopScreen(),
     ),
-    // Kept reachable for a quick connectivity check during dev.
+    // ── Dev ──────────────────────────────────────────────────
     GoRoute(
       path: '/health',
       name: 'health',

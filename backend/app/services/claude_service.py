@@ -25,6 +25,11 @@ CORRECTIVE_PROMPT = (
     "no code fences, and no explanation."
 )
 
+# Claude model for idea clustering. Configurable so a model retirement (the
+# previous hardcoded "claude-sonnet-4-20250514" 404'd) is an env change, not
+# a code change. Sonnet 4.5 is a good quality/cost balance for this task.
+CLAUDE_MODEL = settings.claude_model
+
 
 def _resolve_config(
     framework: str,
@@ -42,7 +47,7 @@ def _call_claude(
 ) -> str:
     """Call Claude API and return raw text. Retries once on bad JSON."""
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model=CLAUDE_MODEL,
         max_tokens=4096,
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}],
@@ -56,7 +61,7 @@ def _call_claude(
         logger.warning("Claude returned invalid JSON, retrying with corrective prompt")
 
     retry = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model=CLAUDE_MODEL,
         max_tokens=4096,
         system=system_prompt,
         messages=[
