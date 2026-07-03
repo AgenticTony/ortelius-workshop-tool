@@ -25,10 +25,15 @@ class FacilitatorDashboardScreen extends ConsumerWidget {
     }
     final theme = Theme.of(context);
 
-    // The QR encodes a join URL participants can scan. On web, that's the
-    // app's own origin with the /join route and the access code as a query
-    // param; a real deployment would use the public app URL.
-    final joinUrl = '${AppConfig.apiBaseUrl}/#/join?code=${session.accessCode}';
+    // The QR encodes a join URL participants can scan with their phone. On web
+    // this is the app's own origin (the LAN IP the phone can actually reach),
+    // with the access code as a query param the join screen reads on launch.
+    // Falls back to the API base URL for non-web (simulator/desktop dev).
+    final origin = AppConfig.webOrigin;
+    final base = (origin != null && origin.isNotEmpty)
+        ? origin
+        : AppConfig.apiBaseUrl;
+    final joinUrl = '$base/#/join?code=${session.accessCode}';
 
     return Scaffold(
       appBar: AppBar(

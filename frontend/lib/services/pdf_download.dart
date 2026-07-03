@@ -1,34 +1,19 @@
-import 'dart:js_interop';
-
 import 'package:flutter/foundation.dart';
-import 'package:web/web.dart' as web;
+
+// Conditional import: when dart:js_interop is available (web), use the real
+// JS-interop implementation; otherwise use the non-web stub. Each platform
+// file exposes the same savePdfWeb() function.
+// ignore: uri_does_not_exist
+import 'pdf_download_stub.dart'
+    if (dart.library.js_interop) 'pdf_download_web.dart' as platform;
 
 /// Saves PDF bytes under [filename]. On the web it triggers a browser
-/// download via a blob + anchor element; elsewhere (mobile/desktop) it's a
-/// no-op stub for now (a future milestone can wire share_plus or file saving).
+/// download via a blob + anchor element; on iOS/macOS/Android it's a no-op
+/// (returns false — could wire share_plus later).
 ///
-/// Returns true if the bytes were delivered to the user (web), false if the
-/// platform isn't supported for direct save (caller may then just show the
-/// byte count / offer an alternative).
+/// Returns true if the bytes were delivered to the user (web), false
+/// otherwise (caller may then just show the byte count).
 bool savePdf(Uint8List bytes, String filename) {
-  if (!kIsWeb) {
-    // Mobile/desktop save is out of scope for this milestone; the bytes are
-    // still held by the controller and could be handed to share_plus later.
-    return false;
-  }
-  // Build a blob from the bytes and trigger an anchor download.
-  final blob = web.Blob(
-    [bytes.toJS].toJS,
-    web.BlobPropertyBag(type: 'application/pdf'),
-  );
-  final url = web.URL.createObjectURL(blob);
-  final anchor = web.document.createElement('a') as web.HTMLAnchorElement;
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.style.display = 'none';
-  web.document.body?.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  web.URL.revokeObjectURL(url);
-  return true;
+  if (!kIsWeb) return false;
+  return platform.savePdfWeb(bytes, filename);
 }
