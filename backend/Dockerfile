@@ -28,6 +28,9 @@ COPY app/ ./app/
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 
+# Prompt templates (loaded at runtime by app.prompts — config, not code).
+COPY prompts/ ./prompts/
+
 EXPOSE 8000
 
 # Entryppoint: ensure schema exists, then launch uvicorn bound to 0.0.0.0

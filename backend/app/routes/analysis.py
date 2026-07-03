@@ -43,6 +43,7 @@ def run_analysis(
     result = analyse_ideas(
         session_id, session.framework, idea_dicts,
         custom_categories=session.custom_categories,
+        session_topic=session.topic,
     )
 
     db_analysis = AnalysisDB(
