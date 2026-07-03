@@ -6,3 +6,4 @@ reportlab==4.4.0
 sqlalchemy==2.0.41
 psycopg2-binary==2.9.10
 slowapi==0.1.10
+alembic==1.14.0

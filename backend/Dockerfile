@@ -24,6 +24,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Application source.
 COPY app/ ./app/
 
+# Alembic migrations + config (entrypoint runs `alembic upgrade head`).
+COPY alembic/ ./alembic/
+COPY alembic.ini ./
+
 EXPOSE 8000
 
 # Entryppoint: ensure schema exists, then launch uvicorn bound to 0.0.0.0
