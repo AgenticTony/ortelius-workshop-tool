@@ -1,10 +1,11 @@
 #!/bin/sh
-# Container entrypoint: ensure the schema exists, then launch the API.
-# Safe to run on every restart — init_db is idempotent.
+# Container entrypoint: apply migrations, then launch the API.
+# `alembic upgrade head` is idempotent — safe on every restart. It creates the
+# schema on a fresh DB and is a no-op on an already-migrated one.
 set -e
 
-echo "Ensuring database schema exists..."
-python -m app.init_db
+echo "Applying database migrations..."
+alembic upgrade head
 
 echo "Starting uvicorn on 0.0.0.0:8000..."
 exec uvicorn app.main:app --host 0.0.0.0 --port 8000
