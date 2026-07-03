@@ -2,15 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/health/health_screen.dart';
+import '../features/participant/join_screen.dart';
+import '../features/participant/workshop_screen.dart';
 
-/// App routing. Minimal for the scaffold — just the connection check as the
-/// home route. Participant and facilitator routes arrive in Milestones 3–4.
+/// App routing. The participant flow is /join -> /workshop.
+/// Facilitator routes arrive in Milestone 4.
 final appRouter = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/join',
   routes: [
     GoRoute(
-      path: '/',
-      name: 'home',
+      path: '/join',
+      name: 'join',
+      builder: (context, state) => const JoinScreen(),
+    ),
+    GoRoute(
+      path: '/workshop',
+      name: 'workshop',
+      builder: (context, state) => const WorkshopScreen(),
+    ),
+    // Kept reachable for a quick connectivity check during dev.
+    GoRoute(
+      path: '/health',
+      name: 'health',
       builder: (context, state) => const HealthScreen(),
     ),
   ],

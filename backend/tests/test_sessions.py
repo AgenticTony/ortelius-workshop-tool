@@ -45,7 +45,10 @@ def test_join_session(client, sample_session):
     assert response.status_code == 200
     data = response.json()
     assert "participant_id" in data
-    assert len(data) == 1
+    # JoinResponse carries participant_id + session_id (the latter lets a
+    # code-join client resolve the session it joined).
+    assert data["session_id"] == sample_session["id"]
+    assert len(data) == 2
 
 
 def test_join_session_empty_name(client, sample_session):

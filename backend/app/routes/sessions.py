@@ -39,7 +39,7 @@ def join_by_code(access_code: str, body: JoinByCodeRequest, db: DBSession = Depe
     db.commit()
     db.refresh(participant)
     _publish_participant_joined(db_session.id, participant, db)
-    return JoinResponse(participant_id=participant.id)
+    return JoinResponse(participant_id=participant.id, session_id=db_session.id)
 
 
 @router.get("/{session_id}", response_model=Session)
@@ -62,7 +62,7 @@ def join_session(session_id: str, name: str = "", db: DBSession = Depends(get_db
     db.commit()
     db.refresh(participant)
     _publish_participant_joined(session_id, participant, db)
-    return JoinResponse(participant_id=participant.id)
+    return JoinResponse(participant_id=participant.id, session_id=session_id)
 
 
 def _unique_access_code(db: DBSession, max_attempts: int = 10) -> str:

@@ -53,6 +53,10 @@ class Session(SessionCreate):
 
 class JoinResponse(BaseModel):
     participant_id: str
+    # session_id is included so a client that joined by access code (where it
+    # doesn't otherwise know the session id) can fetch session details and
+    # subscribe to the SSE stream. Additive, non-breaking.
+    session_id: str | None = None
 
 
 class JoinByCodeRequest(BaseModel):
