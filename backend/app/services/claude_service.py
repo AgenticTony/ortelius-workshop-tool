@@ -4,6 +4,12 @@ import logging
 import anthropic
 
 from app.config import settings
+from app.errors import (
+    ClaudeAPIError,
+    ClaudeParseError,
+    FrameworkNotFoundError,
+    InvalidFrameworkError,
+)
 from app.frameworks import (
     FrameworkConfig,
     get_framework,
@@ -35,23 +41,42 @@ def _resolve_config(
     framework: str,
     custom_categories: list[str] | None,
 ) -> FrameworkConfig:
-    """Resolve framework string + optional categories into a FrameworkConfig."""
-    if framework == "custom":
-        return build_custom_framework(custom_categories or [])
-    return get_framework(framework)
+    """Resolve framework string + optional categories into a FrameworkConfig.
+
+    Raises FrameworkNotFoundError / InvalidFrameworkError — these were
+    previously uncaught ValueErrors on the analysis path (opaque 500s).
+    """
+    try:
+        if framework == "custom":
+            return build_custom_framework(custom_categories or [])
+        return get_framework(framework)
+    except ValueError as e:
+        msg = str(e)
+        if "Unknown framework" in msg or framework != "custom":
+            raise FrameworkNotFoundError(framework) from e
+        raise InvalidFrameworkError(msg) from e
 
 
 def _call_claude(
     system_prompt: str,
     user_message: str,
 ) -> str:
-    """Call Claude API and return raw text. Retries once on bad JSON."""
-    response = client.messages.create(
-        model=CLAUDE_MODEL,
-        max_tokens=4096,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_message}],
-    )
+    """Call Claude API and return raw text. Retries once on bad JSON.
+
+    Raises ClaudeAPIError on any upstream Anthropic/network failure so the
+    caller gets a clean 503 instead of an opaque 500.
+    """
+    try:
+        response = client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=4096,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_message}],
+        )
+    except anthropic.AnthropicError as e:
+        logger.warning("Claude API call failed: %s", e)
+        raise ClaudeAPIError() from e
+
     raw = response.content[0].text.strip()
 
     try:
@@ -60,16 +85,20 @@ def _call_claude(
     except json.JSONDecodeError:
         logger.warning("Claude returned invalid JSON, retrying with corrective prompt")
 
-    retry = client.messages.create(
-        model=CLAUDE_MODEL,
-        max_tokens=4096,
-        system=system_prompt,
-        messages=[
-            {"role": "user", "content": user_message},
-            {"role": "assistant", "content": raw},
-            {"role": "user", "content": CORRECTIVE_PROMPT},
-        ],
-    )
+    try:
+        retry = client.messages.create(
+            model=CLAUDE_MODEL,
+            max_tokens=4096,
+            system=system_prompt,
+            messages=[
+                {"role": "user", "content": user_message},
+                {"role": "assistant", "content": raw},
+                {"role": "user", "content": CORRECTIVE_PROMPT},
+            ],
+        )
+    except anthropic.AnthropicError as e:
+        logger.warning("Claude API retry call failed: %s", e)
+        raise ClaudeAPIError() from e
     return retry.content[0].text.strip()
 
 
@@ -99,5 +128,10 @@ def analyse_ideas(
     )
 
     raw = _call_claude(system_prompt, user_message)
-    parsed = json.loads(raw)
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as e:
+        # The retry inside _call_claude already failed to produce JSON.
+        logger.warning("Claude response unparseable after retry: %s", raw[:200])
+        raise ClaudeParseError() from e
     return AnalysisResult(**parsed)

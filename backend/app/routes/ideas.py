@@ -1,9 +1,10 @@
 import json
 
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session as DBSession
 
 from app.dependencies import get_db
+from app.errors import IdeaNotFoundError, SessionNotFoundError
 from app.models import IdeaCreate, Idea
 from app.rate_limit import limiter
 from app.models.db_models import SessionDB, IdeaDB
@@ -17,7 +18,7 @@ router = APIRouter(prefix="/sessions/{session_id}/ideas", tags=["ideas"])
 def submit_idea(request: Request, session_id: str, body: IdeaCreate, db: DBSession = Depends(get_db)):
     session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise SessionNotFoundError(session_id)
 
     idea = IdeaDB(session_id=session_id, **body.model_dump())
     db.add(idea)
@@ -33,7 +34,7 @@ def submit_idea(request: Request, session_id: str, body: IdeaCreate, db: DBSessi
 def list_ideas(session_id: str, db: DBSession = Depends(get_db)):
     session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise SessionNotFoundError(session_id)
     ideas = db.query(IdeaDB).filter(IdeaDB.session_id == session_id).all()
     return [_to_idea(idea) for idea in ideas]
 
@@ -43,7 +44,7 @@ def vote_idea(session_id: str, idea_id: str, db: DBSession = Depends(get_db)):
     """Upvote an idea. v1 is a simple increment; per-participant dedup is future work."""
     session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise SessionNotFoundError(session_id)
 
     idea = (
         db.query(IdeaDB)
@@ -51,7 +52,7 @@ def vote_idea(session_id: str, idea_id: str, db: DBSession = Depends(get_db)):
         .first()
     )
     if not idea:
-        raise HTTPException(status_code=404, detail="Idea not found")
+        raise IdeaNotFoundError(idea_id)
 
     idea.votes += 1
     db.commit()

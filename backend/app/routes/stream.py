@@ -11,11 +11,12 @@ import asyncio
 import json
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session as DBSession
 
 from app.dependencies import get_db
+from app.errors import SessionNotFoundError
 from app.models.db_models import SessionDB
 from app.services.event_bus import event_bus
 
@@ -29,7 +30,7 @@ async def idea_stream(session_id: str, db: DBSession = Depends(get_db)):
     """Stream live session events as Server-Sent Events."""
     session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+        raise SessionNotFoundError(session_id)
 
     queue = await event_bus.subscribe(session_id)
 
