@@ -35,9 +35,10 @@ services:
       # Passed through from the host environment / .env (optional).
       # The app boots without a key; only /analyse needs it.
       CLAUDE_API_KEY: ${CLAUDE_API_KEY:-}
-      # Default origins cover the Flutter web dev server and a generic
-      # localhost dev port. Override via .env/CORS_ORIGINS for production.
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:54687,http://127.0.0.1:54687}
+      # Default origins cover the Flutter web dev server and LAN testing
+      # (so a phone on the same WiFi can reach the API). Override via
+      # .env/CORS_ORIGINS for production.
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:54687,http://127.0.0.1:54687,http://192.168.50.254:7355,http://192.168.50.254:8000}
     ports:
       - "8000:8000"
     # Container-level healthcheck via the app's /health endpoint.

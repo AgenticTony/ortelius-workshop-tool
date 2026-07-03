@@ -42,8 +42,9 @@ async def idea_stream(session_id: str, db: DBSession = Depends(get_db)):
             while True:
                 try:
                     # Block waiting for an event, with a periodic heartbeat
-                    # so proxies don't kill idle connections.
-                    payload = await asyncio.wait_for(queue.get(), timeout=15.0)
+                    # so proxies don't kill idle connections. 5s (not 15s)
+                    # because mobile browsers buffer until frequent flushes.
+                    payload = await asyncio.wait_for(queue.get(), timeout=5.0)
                     data = json.dumps(payload, default=str)
                     event_type = payload.get("type", "message")
                     yield f"event: {event_type}\ndata: {data}\n\n"
@@ -59,8 +60,10 @@ async def idea_stream(session_id: str, db: DBSession = Depends(get_db)):
         event_generator(),
         media_type="text/event-stream",
         headers={
-            # Disable proxy buffering (nginx, etc.) so events flush immediately.
-            "Cache-Control": "no-cache",
+            # Disable proxy/browser buffering so events flush immediately.
+            # no-transform defeats mobile carriers' compression proxies that
+            # buffer SSE; no-cache stops browser caching of the stream.
+            "Cache-Control": "no-cache, no-transform",
             "X-Accel-Buffering": "no",
             "Connection": "keep-alive",
         },

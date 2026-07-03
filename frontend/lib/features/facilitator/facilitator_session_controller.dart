@@ -75,6 +75,8 @@ class FacilitatorSessionController
   @override
   FacilitatorSessionState build() {
     ref.onDispose(() {
+      _disposed = true;
+      _reconnectTimer?.cancel();
       _sseSub?.cancel();
       _sseSub = null;
     });
@@ -175,16 +177,38 @@ class FacilitatorSessionController
   /// Clear the current error (for dismissible banners).
   void dismissError() => state = state.copyWith(clearError: true);
 
+  String? _streamSessionId; // the session we're (re)connecting to
+  bool _disposed = false; // guards reconnection after dispose
+  Timer? _reconnectTimer;
+
   void _openStream(String sessionId) {
+    _streamSessionId = sessionId;
+    _reconnectTimer?.cancel();
     _sseSub?.cancel();
     state = state.copyWith(connected: false);
     _sseSub = _sse.subscribe(sessionId).listen(
       _onSseEvent,
-      onError: (Object e) =>
-          state = state.copyWith(connected: false, error: '$e'),
-      onDone: () => state = state.copyWith(connected: false),
+      onError: (Object e) {
+        state = state.copyWith(connected: false, error: '$e');
+        _scheduleReconnect();
+      },
+      onDone: () {
+        state = state.copyWith(connected: false);
+        _scheduleReconnect();
+      },
     );
     state = state.copyWith(connected: true);
+  }
+
+  /// Reconnect the SSE stream after a short delay, so a backend restart or
+  /// brief network blip doesn't strand the client at "Connecting…" forever.
+  void _scheduleReconnect() {
+    if (_disposed || _streamSessionId == null) return;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(const Duration(seconds: 2), () {
+      if (_disposed || _streamSessionId == null) return;
+      _openStream(_streamSessionId!);
+    });
   }
 
   void _onSseEvent(SseEvent event) {

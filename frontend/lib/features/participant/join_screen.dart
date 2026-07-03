@@ -20,6 +20,17 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
   final _nameController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    // Pre-fill the access code if present in the URL (the QR code path appends
+    // ?code=ABC123 so a participant scanning it lands here ready to join).
+    final code = Uri.base.queryParameters['code'];
+    if (code != null && code.isNotEmpty) {
+      _codeController.text = code;
+    }
+  }
+
+  @override
   void dispose() {
     _codeController.dispose();
     _nameController.dispose();

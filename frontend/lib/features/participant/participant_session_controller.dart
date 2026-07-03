@@ -58,6 +58,8 @@ class ParticipantSessionController
   ParticipantSessionState build() {
     // Tear down the SSE subscription if the controller is disposed.
     ref.onDispose(() {
+      _disposed = true;
+      _reconnectTimer?.cancel();
       _sseSub?.cancel();
       _sseSub = null;
     });
@@ -131,7 +133,7 @@ class ParticipantSessionController
     }
     state = state.copyWith(loading: true, clearError: true);
     try {
-      await _api.submitIdea(
+      final idea = await _api.submitIdea(
         session.id,
         participantId: pid,
         participantName: session.participants
@@ -142,8 +144,12 @@ class ParticipantSessionController
         content: content.trim(),
         category: category,
       );
-      // The SSE stream will deliver the idea_added event and update the list;
-      // no need to optimistically add. Just clear loading.
+      // Add the returned idea to the local list immediately. SSE should also
+      // deliver it, but mobile browsers can buffer SSE, so don't rely on it
+      // for the submitter's own idea. _onSseEvent dedupes by id.
+      if (!state.ideas.any((i) => i.id == idea.id)) {
+        state = state.copyWith(ideas: [...state.ideas, idea]);
+      }
       state = state.copyWith(loading: false, clearError: true);
     } catch (e) {
       state = state.copyWith(loading: false, error: '$e');
@@ -175,15 +181,38 @@ class ParticipantSessionController
   /// Clear the current error (for dismissible banners).
   void dismissError() => state = state.copyWith(clearError: true);
 
+  String? _streamSessionId; // the session we're (re)connecting to
+  bool _disposed = false; // guards reconnection after dispose
+  Timer? _reconnectTimer;
+
   void _openStream(String sessionId) {
+    _streamSessionId = sessionId;
+    _reconnectTimer?.cancel();
     _sseSub?.cancel();
     state = state.copyWith(connected: false);
     _sseSub = _sse.subscribe(sessionId).listen(
       _onSseEvent,
-      onError: (Object e) => state = state.copyWith(connected: false, error: '$e'),
-      onDone: () => state = state.copyWith(connected: false),
+      onError: (Object e) {
+        state = state.copyWith(connected: false, error: '$e');
+        _scheduleReconnect();
+      },
+      onDone: () {
+        state = state.copyWith(connected: false);
+        _scheduleReconnect();
+      },
     );
     state = state.copyWith(connected: true);
+  }
+
+  /// Reconnect the SSE stream after a short delay, so a backend restart or
+  /// brief network blip doesn't strand the client at "Connecting…" forever.
+  void _scheduleReconnect() {
+    if (_disposed || _streamSessionId == null) return;
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(const Duration(seconds: 2), () {
+      if (_disposed || _streamSessionId == null) return;
+      _openStream(_streamSessionId!);
+    });
   }
 
   void _onSseEvent(SseEvent event) {
