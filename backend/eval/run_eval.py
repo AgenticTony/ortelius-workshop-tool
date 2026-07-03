@@ -119,11 +119,14 @@ def score_case(case: dict, predictions: dict[str, str]) -> dict:
     }
 
 
-def print_report(results: list[dict]) -> None:
-    """Print per-case breakdown + overall accuracy."""
+def print_report(results: list[dict], dataset: list[dict]) -> None:
+    """Print per-case breakdown + per-framework + overall accuracy."""
     print("\n" + "=" * 60)
     print("EVAL RESULTS")
     print("=" * 60)
+
+    # Map case_id -> framework so we can group.
+    case_framework = {c["id"]: c.get("framework", "swot") for c in dataset}
 
     for r in results:
         status = "PASS" if r["accuracy"] == 100 else "PARTIAL" if r["accuracy"] > 0 else "FAIL"
@@ -137,6 +140,21 @@ def print_report(results: list[dict]) -> None:
     total_correct = sum(r["correct"] for r in results)
     total_ideas = sum(r["total"] for r in results)
     overall = round(total_correct / total_ideas * 100, 1) if total_ideas else 0
+
+    # Per-framework aggregation (group results by the case's framework field).
+    fw_groups: dict[str, list[dict]] = {}
+    for r in results:
+        fw = case_framework.get(r["case_id"], "unknown")
+        fw_groups.setdefault(fw, []).append(r)
+
+    print("\n" + "-" * 60)
+    print("PER-FRAMEWORK")
+    for fw in sorted(fw_groups):
+        rs = fw_groups[fw]
+        fc = sum(r["correct"] for r in rs)
+        ft = sum(r["total"] for r in rs)
+        facc = round(fc / ft * 100, 1) if ft else 0
+        print(f"  {fw:8s}: {fc}/{ft} ({facc}%) — {len(rs)} case(s)")
 
     print("\n" + "-" * 60)
     print(f"OVERALL: {total_correct}/{total_ideas} ({overall}%)")
@@ -176,7 +194,7 @@ def main():
     elapsed = round(time.time() - start, 1)
     print(f"\nCompleted in {elapsed}s")
 
-    print_report(results)
+    print_report(results, dataset)
 
 
 if __name__ == "__main__":
