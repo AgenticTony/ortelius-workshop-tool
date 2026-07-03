@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_providers.dart';
+import '../../core/theme/layout.dart';
 import '../../core/config/app_config.dart';
 
 /// Connection-check screen. The Milestone 2 demo target: proves the app
@@ -54,7 +55,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen> {
       appBar: AppBar(title: const Text('Workshop Tool — Connection')),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
+          constraints: const BoxConstraints(maxWidth: Layout.contentMaxWidth),
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(

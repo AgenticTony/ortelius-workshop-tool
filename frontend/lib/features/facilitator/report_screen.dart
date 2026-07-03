@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/models.dart';
+import '../../services/pdf_download.dart';
+import '../../widgets/empty_state.dart';
 import 'facilitator_session_controller.dart';
 
 /// Renders the AI analysis result and offers a PDF download. Reached from the
@@ -16,7 +18,11 @@ class ReportScreen extends ConsumerWidget {
     if (analysis == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Analysis')),
-        body: const Center(child: Text('No analysis yet. Run it from the dashboard.')),
+        body: EmptyState(
+          icon: Icons.auto_awesome_outlined,
+          message: 'No analysis yet',
+          detail: 'Run AI analysis from the dashboard first.',
+        ),
       );
     }
     final theme = Theme.of(context);
@@ -103,11 +109,17 @@ class ReportScreen extends ConsumerWidget {
           ref.read(facilitatorSessionProvider).error ?? 'Download failed';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
     } else {
+      final session = ref.read(facilitatorSessionProvider).session;
+      final filename = 'workshop-report-${session?.id ?? 'session'}.pdf';
+      final saved = savePdf(bytes, filename);
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('PDF ready (${bytes.length ~/ 1024} KB)')),
+        SnackBar(
+          content: Text(saved
+              ? 'PDF downloaded (${bytes.length ~/ 1024} KB)'
+              : 'PDF ready (${bytes.length ~/ 1024} KB)'),
+        ),
       );
-      // Note: actually saving/sharing the file is platform-specific (web vs
-      // mobile). For web, an anchor-download is wired in Milestone 5 polish.
     }
   }
 }

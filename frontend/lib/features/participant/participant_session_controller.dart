@@ -172,12 +172,15 @@ class ParticipantSessionController
     }
   }
 
+  /// Clear the current error (for dismissible banners).
+  void dismissError() => state = state.copyWith(clearError: true);
+
   void _openStream(String sessionId) {
     _sseSub?.cancel();
     state = state.copyWith(connected: false);
     _sseSub = _sse.subscribe(sessionId).listen(
       _onSseEvent,
-      onError: (e) => state = state.copyWith(connected: false, error: '$e'),
+      onError: (Object e) => state = state.copyWith(connected: false, error: '$e'),
       onDone: () => state = state.copyWith(connected: false),
     );
     state = state.copyWith(connected: true);

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../models/models.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/error_banner.dart';
 import 'participant_session_controller.dart';
 
 /// The participant's live workshop room: a real-time feed of ideas, an input
@@ -70,15 +72,13 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
           : Column(
               children: [
                 if (state.error != null)
-                  Material(
-                    color: Theme.of(context).colorScheme.errorContainer,
-                    child: Padding(
-                      padding: const EdgeInsets.all(8),
-                      child: Text(state.error!,
-                          style: TextStyle(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onErrorContainer)),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                    child: ErrorBanner(
+                      message: state.error!,
+                      onDismiss: () => ref
+                          .read(participantSessionProvider.notifier)
+                          .dismissError(),
                     ),
                   ),
                 Expanded(child: _ideaList(state.ideas, state.participantId)),
@@ -90,11 +90,10 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
 
   Widget _ideaList(List<Idea> ideas, String? myParticipantId) {
     if (ideas.isEmpty) {
-      return Center(
-        child: Text(
-          'No ideas yet — be the first to share one.',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
+      return EmptyState(
+        icon: Icons.lightbulb_outline,
+        message: 'No ideas yet',
+        detail: 'Be the first to share one.',
       );
     }
     return ListView.builder(
@@ -232,17 +231,27 @@ class _VoteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.arrow_upward, size: 18),
-            Text('$votes', style: Theme.of(context).textTheme.labelMedium),
-          ],
+    // Semantic label so screen readers announce the action + count, and a
+    // 48x48 minimum tap target (Material accessibility guideline).
+    return Semantics(
+      button: true,
+      label: 'Upvote, $votes ${votes == 1 ? 'vote' : 'votes'}',
+      hint: 'Tap to upvote this idea',
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.arrow_upward, size: 20),
+                Text('$votes', style: Theme.of(context).textTheme.labelMedium),
+              ],
+            ),
+          ),
         ),
       ),
     );

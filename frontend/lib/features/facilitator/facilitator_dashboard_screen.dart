@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/config/app_config.dart';
+import '../../widgets/empty_state.dart';
+import '../../widgets/error_banner.dart';
 import 'facilitator_session_controller.dart';
 
 /// Facilitator dashboard: the live workshop control center. Shows the access
@@ -42,15 +44,11 @@ class FacilitatorDashboardScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           if (state.error != null)
-            Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(state.error!,
-                  style: TextStyle(color: theme.colorScheme.onErrorContainer)),
+            ErrorBanner(
+              message: state.error!,
+              onDismiss: () => ref
+                  .read(facilitatorSessionProvider.notifier)
+                  .dismissError(),
             ),
           // ── Access code + QR ──────────────────────────────────
           Card(
@@ -61,17 +59,22 @@ class FacilitatorDashboardScreen extends ConsumerWidget {
                   Text('Participants join with this code',
                       style: theme.textTheme.labelLarge),
                   const SizedBox(height: 4),
-                  Text(
+                  SelectableText(
                     session.accessCode,
                     style: theme.textTheme.displaySmall
                         ?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 4),
+                    semanticsLabel:
+                        'Access code: ${session.accessCode.split('').join(' ')}',
                   ),
                   const SizedBox(height: 16),
-                  QrImageView(
-                    data: joinUrl,
-                    version: QrVersions.auto,
-                    size: 200,
-                    backgroundColor: Colors.white,
+                  Semantics(
+                    label: 'QR code for participants to join',
+                    child: QrImageView(
+                      data: joinUrl,
+                      version: QrVersions.auto,
+                      size: 200,
+                      backgroundColor: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text('or scan the QR code',
@@ -102,9 +105,10 @@ class FacilitatorDashboardScreen extends ConsumerWidget {
           Text('Live ideas', style: theme.textTheme.titleSmall),
           const SizedBox(height: 8),
           if (state.ideas.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: Text('Waiting for the first idea…')),
+            EmptyState(
+              icon: Icons.lightbulb_outline,
+              message: 'Waiting for the first idea',
+              detail: 'Share the access code or QR to invite participants.',
             )
           else
             ...state.ideas.map((idea) => ListTile(
