@@ -55,3 +55,9 @@ services:
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
     autoDeploy: true
+    # Bake the API service URL into the web build at build time so the deployed
+    # image talks to workshop-api directly (the app's origin-derived fallback
+    # only works when frontend & API share a host, which they don't on Render).
+    envVars:
+      - key: API_BASE_URL
+        value: https://workshop-api-8yjy.onrender.com

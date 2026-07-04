@@ -48,8 +48,9 @@ curl -X POST https://workshop-api.onrender.com/sessions \
   -H "Content-Type: application.json" \
   -d '{"topic":"Live deploy test","framework":"swot"}'
 
-# Open the frontend in a browser, create a session, run the full loop
-# (the web app auto-discovers the API from its own origin on the same host)
+# Open the frontend in a browser, create a session, run the full loop.
+# The web build has the API URL baked in via the API_BASE_URL build arg
+# (see render.yaml → workshop-web → envVars).
 ```
 
 ## Cost

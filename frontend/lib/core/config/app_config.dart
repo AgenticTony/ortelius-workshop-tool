@@ -8,11 +8,15 @@ import 'origin_stub.dart'
 
 /// Reads environment configuration loaded from assets/.env via flutter_dotenv.
 ///
-/// On web, the API base URL is derived from the browser's current origin so
-/// the same build works from any host (simulator, phone over LAN) without
-/// rebuilding — the backend is expected to be served on the adjacent port 8000
-/// of the same host. On non-web (simulator/desktop) it falls back to the
-/// API_BASE_URL in .env.
+/// URL precedence (first match wins):
+///   1. API_BASE_URL in .env — explicit wins. Production builds bake the real
+///      API host (https://workshop-api-…onrender.com) in via a Docker build
+///      arg so the deployed image points at the API service directly.
+///   2. On web only, derive the API from the browser origin + :8000 — useful
+///      for local dev (frontend on :7355, API on :8000 of the same host, and
+///      for a phone joining the same LAN). This is ONLY a fallback when no
+///      explicit API_BASE_URL is set.
+///   3. http://localhost:8000 — last-resort default for non-web dev.
 class AppConfig {
   const AppConfig._();
 
@@ -23,19 +27,25 @@ class AppConfig {
   }
 
   static String get apiBaseUrl {
-    // On web, prefer the browser's origin so the phone over LAN resolves the
-    // backend on the same host. We assume the API runs on port 8000 of the
-    // machine serving the web app.
+    // 1. Explicit API_BASE_URL always wins (production + mobile dev).
+    final explicit = dotenv.maybeGet('API_BASE_URL');
+    if (explicit != null && explicit.isNotEmpty) {
+      return explicit.endsWith('/')
+          ? explicit.substring(0, explicit.length - 1)
+          : explicit;
+    }
+
+    // 2. Web fallback: derive from browser origin + :8000 (local/LAN dev).
     if (kIsWeb) {
       final o = origin.currentOrigin();
       if (o != null && o.isNotEmpty) {
-        // Replace whatever port the web app is on with 8000 (the API).
         final uri = Uri.parse(o);
         return '${uri.scheme}://${uri.host}:8000';
       }
     }
-    final url = dotenv.maybeGet('API_BASE_URL') ?? 'http://localhost:8000';
-    return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+
+    // 3. Last resort for non-web dev.
+    return 'http://localhost:8000';
   }
 
   /// The origin the web app itself is served from (for building join URLs in
