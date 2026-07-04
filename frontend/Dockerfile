@@ -5,7 +5,9 @@
 # (or any static host).
 
 # ── Stage 1: build the web app ───────────────────────────────
-FROM ghcr.io/cirruslabs/flutter:3.27.4 AS build
+# Pin the Flutter SDK to match the local dev version (3.38.6). Bump in
+# lockstep when you upgrade Flutter locally.
+FROM ghcr.io/cirruslabs/flutter:3.38.6 AS build
 
 WORKDIR /app
 COPY pubspec.yaml pubspec.lock ./
