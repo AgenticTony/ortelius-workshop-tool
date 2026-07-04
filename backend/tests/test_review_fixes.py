@@ -13,7 +13,6 @@ Each test guards against a specific bug that was found and fixed:
 """
 
 import asyncio
-import json
 import string
 from unittest.mock import patch
 
