@@ -50,5 +50,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # pubspec declares .env as an asset; it's gitignored, so stub it for CI.
+      - name: Create .env stub
+        run: cp .env.example .env
+
       - name: Analyze
         run: flutter analyze

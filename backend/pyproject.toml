@@ -7,6 +7,12 @@ line-length = 100
 target-version = "py313"
 extend-exclude = ["venv", ".venv", "alembic/versions"]
 
+[tool.pytest.ini_options]
+# Make the backend/ dir importable as `app.*` in CI (where there's no rootdir
+# magic). Locally pytest resolves this via conftest, but CI needs it explicit.
+pythonpath = ["."]
+testpaths = ["tests"]
+
 [tool.ruff.lint]
 # E/W = pycodestyle, F = pyflakes, I = isort (import sorting).
 # Kept intentionally permissive — this catches real bugs, not bike-shedding.
