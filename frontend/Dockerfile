@@ -15,16 +15,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 ENV FLUTTER_VERSION=3.44.4
-ENV FLUTTER_HOME=/opt/flutter
-ENV PATH="${FLUTTER_HOME}/bin:${PATH}"
+ENV PATH="/opt/flutter/bin:${PATH}"
 
 # Install Flutter from the official tarball (no third-party image).
+# The tarball extracts to /opt/flutter directly, so no mv needed.
 # 3.44.4 is the current stable Linux release — verify the version exists in
 # releases_linux.json before changing FLUTTER_VERSION (not all versions are
 # published as Linux tarballs).
 RUN curl -fsSL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz \
     | tar -xJ -C /opt \
-    && mv /opt/flutter ${FLUTTER_HOME} \
     && flutter --version
 
 WORKDIR /app
