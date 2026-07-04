@@ -5,8 +5,8 @@ from sqlalchemy.orm import Session as DBSession
 from app.dependencies import get_db, get_facilitator
 from app.errors import AnalysisNotFoundError, SessionNotFoundError, WorkshopError
 from app.models import AnalysisResult, ClusteredIdea
+from app.models.db_models import AnalysisDB, IdeaDB, SessionDB
 from app.rate_limit import limiter
-from app.models.db_models import SessionDB, IdeaDB, AnalysisDB
 from app.services.claude_service import analyse_ideas
 from app.services.pdf_service import generate_pdf
 

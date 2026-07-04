@@ -1,8 +1,6 @@
 from unittest.mock import patch
 
 from app.models import AnalysisResult
-from app.models.db_models import AnalysisDB
-
 
 MOCK_ANALYSIS = AnalysisResult(
     session_id="mock",

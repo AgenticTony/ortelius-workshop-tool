@@ -13,9 +13,9 @@ from app.errors import (
 )
 from app.frameworks import (
     FrameworkConfig,
-    get_framework,
     build_custom_framework,
     build_system_prompt,
+    get_framework,
 )
 from app.models import AnalysisResult
 from app.prompts import PROMPT_VERSION
@@ -72,7 +72,6 @@ def _call_claude(
     Anthropic/network failure so the caller gets a clean 503.
     """
     started = time.monotonic()
-    retry_attempted = False
     try:
         response = client.messages.create(
             model=CLAUDE_MODEL,
@@ -92,7 +91,6 @@ def _call_claude(
         return raw
     except json.JSONDecodeError:
         logger.warning("Claude returned invalid JSON, retrying with corrective prompt")
-        retry_attempted = True
 
     try:
         retry = client.messages.create(

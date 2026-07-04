@@ -5,9 +5,8 @@ the historical in-code string exactly (so the extraction in PR3 is a pure
 no-op for accuracy). If someone edits clustering_v1.md, this test forces a
 deliberate CHANGELOG entry + version bump.
 """
-from app.frameworks import SWOT, PESTEL, build_custom_framework, build_system_prompt
-from app.prompts import PROMPT_VERSION, render_clustering_prompt
-
+from app.frameworks import PESTEL, SWOT, build_custom_framework, build_system_prompt
+from app.prompts import PROMPT_VERSION
 
 # The exact prompt the in-code f-string produced before extraction to a file.
 # Captured from frameworks.py at commit prior to PR3; must stay byte-identical.

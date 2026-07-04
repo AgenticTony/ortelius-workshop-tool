@@ -1,21 +1,21 @@
 from datetime import datetime
 from io import BytesIO
 
-from reportlab.lib.colors import HexColor, white, black
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from reportlab.lib.colors import HexColor, white
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm, mm
 from reportlab.platypus import (
     BaseDocTemplate,
     Frame,
+    HRFlowable,
+    PageBreak,
     PageTemplate,
     Paragraph,
     Spacer,
     Table,
     TableStyle,
-    PageBreak,
-    HRFlowable,
 )
 
 from app.models import AnalysisResult
@@ -221,7 +221,6 @@ def _build_category_grid(styles: dict, analysis: AnalysisResult) -> list:
 
     num_cols = 2 if len(cat_keys) <= 4 else 3
     col_w = (PAGE_W - 2 * MARGIN - (num_cols - 1) * 0.5 * cm) / num_cols
-    gap = 0.5 * cm
 
     def _title_case(key: str) -> str:
         return key.replace("_", " ").title()

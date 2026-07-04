@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session as DBSession
 
 from app.dependencies import get_db
 from app.errors import IdeaNotFoundError, SessionNotFoundError
-from app.models import IdeaCreate, Idea
+from app.models import Idea, IdeaCreate
+from app.models.db_models import IdeaDB, SessionDB
 from app.rate_limit import limiter
-from app.models.db_models import SessionDB, IdeaDB
-from app.services.event_bus import event_bus, EVENT_IDEA_ADDED, EVENT_IDEA_VOTED
+from app.services.event_bus import EVENT_IDEA_ADDED, EVENT_IDEA_VOTED, event_bus
 
 router = APIRouter(prefix="/sessions/{session_id}/ideas", tags=["ideas"])
 
