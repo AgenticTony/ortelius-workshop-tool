@@ -30,6 +30,11 @@ jobs:
         run: ruff check .
 
       - name: Test (pytest)
+        # Tests use SQLite via conftest, but app.config.settings.database_url
+        # is read at import time (create_engine). Give it a valid placeholder
+        # so import doesn't fail; the tests override get_db anyway.
+        env:
+          DATABASE_URL: "sqlite:///./ci-placeholder.db"
         run: pytest tests/ -v
 
   frontend:
