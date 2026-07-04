@@ -23,9 +23,9 @@ BACKEND_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_DIR))
 
 # Import the app's Base + models so target_metadata is fully populated.
+from app.config import settings  # noqa: E402
 from app.database import Base  # noqa: E402
 from app.models import db_models  # noqa: F401,E402  (registers models on Base)
-from app.config import settings  # noqa: E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

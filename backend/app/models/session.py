@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.frameworks import get_framework, build_custom_framework
+from app.frameworks import build_custom_framework, get_framework
 
 
 def _utcnow() -> datetime:

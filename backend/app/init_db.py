@@ -12,6 +12,7 @@ Run with: ``python -m app.init_db``
 """
 
 from app.database import Base, engine
+
 # Importing db_models registers all ORM models with Base.metadata.
 from app.models import db_models  # noqa: F401
 
