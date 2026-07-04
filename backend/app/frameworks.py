@@ -149,16 +149,29 @@ def build_custom_framework(categories: list[str]) -> FrameworkConfig:
     Used when a facilitator creates a session with framework='custom'.
     Category IDs are derived from names (lowercased, spaces→underscores).
     """
-    if len(categories) < 2:
+    # Strip first so empty/whitespace names are caught before counting.
+    cleaned = [c.strip() for c in categories]
+    if len(cleaned) < 2:
         raise ValueError("Custom frameworks need at least 2 categories.")
+    if any(not c for c in cleaned):
+        raise ValueError("Custom framework category names cannot be empty.")
+    # Duplicate category IDs would collide in the prompt's JSON schema and in
+    # the result dict (JSON keys must be unique → one would silently drop).
+    ids = [c.lower().replace(" ", "_") for c in cleaned]
+    if len(set(ids)) != len(ids):
+        dup = next(i for i in ids if ids.count(i) > 1)
+        raise ValueError(
+            f"Custom framework category names must be unique "
+            f"(duplicate: '{dup}')."
+        )
 
     cats = []
-    for name in categories:
-        cat_id = name.strip().lower().replace(" ", "_")
+    for raw, name in zip(categories, cleaned):
+        cat_id = name.lower().replace(" ", "_")
         cats.append(Category(
             id=cat_id,
-            name=name.strip(),
-            description=f"Workshop ideas related to: {name.strip()}.",
+            name=name,
+            description=f"Workshop ideas related to: {name}.",
         ))
 
     return FrameworkConfig(

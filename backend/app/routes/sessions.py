@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session as DBSession
 
 from app.dependencies import get_db
@@ -10,6 +10,7 @@ from app.errors import (
 from app.models import JoinByCodeRequest, JoinResponse, Participant, Session, SessionCreate
 from app.models.db_models import ParticipantDB, SessionDB
 from app.models.session import generate_access_code
+from app.rate_limit import limiter
 from app.security import generate_facilitator_token, hash_token
 from app.services.event_bus import EVENT_PARTICIPANT_JOINED, event_bus
 
@@ -35,7 +36,8 @@ def create_session(body: SessionCreate, db: DBSession = Depends(get_db)):
 
 
 @router.post("/join/{access_code}", response_model=JoinResponse)
-def join_by_code(access_code: str, body: JoinByCodeRequest, db: DBSession = Depends(get_db)):
+@limiter.limit("30/minute")
+def join_by_code(request: Request, access_code: str, body: JoinByCodeRequest, db: DBSession = Depends(get_db)):
     db_session = db.query(SessionDB).filter(SessionDB.access_code == access_code).first()
     if not db_session:
         raise InvalidAccessCodeError()
@@ -56,7 +58,8 @@ def get_session(session_id: str, db: DBSession = Depends(get_db)):
 
 
 @router.post("/{session_id}/join", response_model=JoinResponse)
-def join_session(session_id: str, name: str = "", db: DBSession = Depends(get_db)):
+@limiter.limit("30/minute")
+def join_session(request: Request, session_id: str, name: str = "", db: DBSession = Depends(get_db)):
     if not name.strip():
         # Input validation — keep as HTTPException for FastAPI's native 422 shape.
         raise HTTPException(status_code=422, detail="Name is required")

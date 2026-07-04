@@ -41,11 +41,14 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
   Future<void> _submit() async {
     final text = _ideaController.text.trim();
     if (text.isEmpty) return;
+    // Clear optimistically, but restore the text if the submit fails so the
+    // user doesn't lose what they typed.
     _ideaController.clear();
     await ref.read(participantSessionProvider.notifier).submitIdea(text);
     if (!mounted) return;
     final err = ref.read(participantSessionProvider).error;
     if (err != null) {
+      _ideaController.text = text;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
     }
   }

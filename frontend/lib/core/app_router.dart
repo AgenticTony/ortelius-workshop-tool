@@ -37,10 +37,17 @@ final appRouter = GoRouter(
       builder: (context, state) => const ReportScreen(),
     ),
     // ── Participant ──────────────────────────────────────────
+    // The QR code encodes the join code as a query param inside the URL fragment
+    // (https://origin/#/join?code=ABC123) under Flutter web's default hash
+    // strategy. GoRouter parses that fragment into state.uri.queryParameters,
+    // so we read the code here — Uri.base.queryParameters can't see fragment
+    // params and would leave the field unpre-filled.
     GoRoute(
       path: '/join',
       name: 'join',
-      builder: (context, state) => const JoinScreen(),
+      builder: (context, state) => JoinScreen(
+        initialCode: state.uri.queryParameters['code'],
+      ),
     ),
     GoRoute(
       path: '/workshop',

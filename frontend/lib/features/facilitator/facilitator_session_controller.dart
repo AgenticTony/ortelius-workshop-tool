@@ -180,6 +180,7 @@ class FacilitatorSessionController
   String? _streamSessionId; // the session we're (re)connecting to
   bool _disposed = false; // guards reconnection after dispose
   Timer? _reconnectTimer;
+  int _reconnectAttempts = 0; // for exponential backoff
 
   void _openStream(String sessionId) {
     _streamSessionId = sessionId;
@@ -197,15 +198,20 @@ class FacilitatorSessionController
         _scheduleReconnect();
       },
     );
+    // A fresh successful open resets the backoff counter.
+    _reconnectAttempts = 0;
     state = state.copyWith(connected: true);
   }
 
-  /// Reconnect the SSE stream after a short delay, so a backend restart or
-  /// brief network blip doesn't strand the client at "Connecting…" forever.
+  /// Reconnect the SSE stream after a delay, so a backend restart or brief
+  /// network blip doesn't strand the client. Uses exponential backoff with a
+  /// cap so a dead/ended session isn't hammered indefinitely (2s, 4s, 8s … 30s).
   void _scheduleReconnect() {
     if (_disposed || _streamSessionId == null) return;
     _reconnectTimer?.cancel();
-    _reconnectTimer = Timer(const Duration(seconds: 2), () {
+    _reconnectAttempts += 1;
+    final base = (_reconnectAttempts * 2).clamp(2, 30);
+    _reconnectTimer = Timer(Duration(seconds: base), () {
       if (_disposed || _streamSessionId == null) return;
       _openStream(_streamSessionId!);
     });
@@ -220,14 +226,14 @@ class FacilitatorSessionController
         state = state.copyWith(ideas: [...state.ideas, idea]);
       case SseEventType.ideaVoted:
         final ideaId = event.data['idea_id'] as String?;
-        final votes = event.data['votes'] as int?;
+        final votes = (event.data['votes'] as num?)?.toInt();
         if (ideaId == null || votes == null) return;
         final updated = state.ideas
             .map((i) => i.id == ideaId ? i.copyWith(votes: votes) : i)
             .toList();
         state = state.copyWith(ideas: updated);
       case SseEventType.participantJoined:
-        final count = event.data['participant_count'] as int?;
+        final count = (event.data['participant_count'] as num?)?.toInt();
         if (count != null) {
           state = state.copyWith(participantCount: count);
         }
