@@ -9,6 +9,7 @@ Adding a new framework = adding a dict entry. No code changes elsewhere.
 
 from pydantic import BaseModel
 
+
 class Category(BaseModel):
     """One box in the analysis framework matrix."""
     id: str

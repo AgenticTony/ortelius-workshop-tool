@@ -1,0 +1,22 @@
+# Ruff linter config for the backend.
+# Keeps the lint surface small + sensible for a FastAPI project; we enable
+# the default rule set (pyflakes + pycodestyle + a few extras) without
+# chasing 100% stylistic compliance.
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = ["venv", ".venv", "alembic/versions"]
+
+[tool.ruff.lint]
+# E/W = pycodestyle, F = pyflakes, I = isort (import sorting).
+# Kept intentionally permissive — this catches real bugs, not bike-shedding.
+select = ["E", "W", "F", "I"]
+ignore = [
+    "E501",  # line length handled by formatter, not a hard fail
+    "E402",  # module-level import not at top (env.py + eval do path setup first)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# alembic migrations + eval runner legitimately do sys.path tricks.
+"alembic/env.py" = ["E402"]
+"eval/run_eval.py" = ["E402"]

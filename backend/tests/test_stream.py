@@ -14,12 +14,11 @@ curl against the running container (see the verification step in the roadmap).
 
 import asyncio
 
-import pytest
 import httpx
+import pytest
 
 from app.main import app
-from app.services.event_bus import event_bus, EVENT_IDEA_ADDED
-
+from app.services.event_bus import EVENT_IDEA_ADDED, event_bus
 
 # ── Event bus unit tests ─────────────────────────────────────
 

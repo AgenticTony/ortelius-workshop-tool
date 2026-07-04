@@ -1,17 +1,17 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DBSession
 
 from app.dependencies import get_db
 from app.errors import (
+    AccessCodeCollisionError,
     InvalidAccessCodeError,
     SessionNotFoundError,
-    AccessCodeCollisionError,
 )
-from app.models import SessionCreate, Session, Participant, JoinResponse, JoinByCodeRequest
+from app.models import JoinByCodeRequest, JoinResponse, Participant, Session, SessionCreate
+from app.models.db_models import ParticipantDB, SessionDB
 from app.models.session import generate_access_code
-from app.models.db_models import SessionDB, ParticipantDB
 from app.security import generate_facilitator_token, hash_token
-from app.services.event_bus import event_bus, EVENT_PARTICIPANT_JOINED
+from app.services.event_bus import EVENT_PARTICIPANT_JOINED, event_bus
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 

@@ -11,18 +11,15 @@ Verifies:
 from unittest.mock import patch
 
 import anthropic
-import pytest
 
 from app.errors import (
-    WorkshopError,
-    SessionNotFoundError,
     ClaudeAPIError,
     ClaudeParseError,
     FrameworkNotFoundError,
+    SessionNotFoundError,
+    WorkshopError,
 )
 from app.main import app
-from app.models import AnalysisResult
-
 
 # ── Unit: error classes ──────────────────────────────────────
 

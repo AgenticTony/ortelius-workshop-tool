@@ -1,7 +1,7 @@
+import asyncio
 import logging
 import uuid
 from contextlib import asynccontextmanager
-import asyncio
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,14 +12,14 @@ from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
-from app.errors import WorkshopError, AuthenticationError
+from app.errors import AuthenticationError, WorkshopError
 
 # Ensure app loggers (e.g. claude_service's claude_call line) surface at INFO.
 # Without this, uvicorn's log config captures only uvicorn.* loggers and app
 # log lines are dropped. Safe to call repeatedly.
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 from app.rate_limit import limiter
-from app.routes import sessions, ideas, analysis, stream
+from app.routes import analysis, ideas, sessions, stream
 from app.services.event_bus import event_bus
 
 logger = logging.getLogger(__name__)
