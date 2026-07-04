@@ -1,5 +1,7 @@
 # API Contract
 
+> **Superseded by [`api_reference.md`](api_reference.md)** — this file is kept as the original Anthony↔Mohand contract (in Swedish). For the current, complete API reference with curl examples and the error-code table, see `api_reference.md`.
+
 ## Vad detta dokument är
 
 Detta är avtalet mellan backend (Python/FastAPI) och frontend (Flutter) om hur de två delarna kommunicerar med varandra. Det definierar vilka slutpunkter som finns, vilken data som ska in och vilken data som ska ut.
