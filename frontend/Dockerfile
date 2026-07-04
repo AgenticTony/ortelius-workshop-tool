@@ -27,13 +27,20 @@ RUN curl -fsSL https://storage.googleapis.com/flutter_infra_release/releases/sta
     && git config --global --add safe.directory /opt/flutter \
     && flutter --version
 
+# API_BASE_URL: the deployed backend the web app should talk to. Must be set
+# for production — otherwise the app falls back to deriving the API from the
+# browser origin + :8000, which is wrong on Render (frontend and API are
+# different services). Default here keeps local `docker build` working.
+ARG API_BASE_URL=http://localhost:8000
+
 WORKDIR /app
 COPY pubspec.yaml pubspec.lock ./
 RUN flutter pub get
 
 COPY . .
-# The app reads .env as an asset; stub it so the build doesn't fail.
-RUN cp .env.example .env
+# The app reads .env as an asset. Inject API_BASE_URL so the baked build points
+# at the API service. dotenv merges this over .env.example at runtime.
+RUN printf 'API_BASE_URL=%s\n' "$API_BASE_URL" > .env
 RUN flutter build web --release
 
 # ── Stage 2: serve with nginx ────────────────────────────────
