@@ -1,0 +1,18 @@
+# Keep the frontend build context small.
+build/
+.dart_tool/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+ios/
+android/
+macos/
+linux/
+windows/
+.git/
+.gitignore
+.DS_Store
+.env
