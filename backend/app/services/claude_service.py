@@ -3,6 +3,7 @@ import logging
 import time
 
 import anthropic
+import pydantic
 
 from app.config import settings
 from app.errors import (
@@ -173,4 +174,11 @@ def analyse_ideas(
         # The retry inside _call_claude already failed to produce JSON.
         logger.warning("Claude response unparseable after retry: %s", raw[:200])
         raise ClaudeParseError() from e
-    return AnalysisResult(**parsed)
+    try:
+        return AnalysisResult(**parsed)
+    except (pydantic.ValidationError, TypeError) as e:
+        # Valid JSON but missing required fields / wrong shape — still a
+        # Claude output problem, so surface the designed 502 rather than a
+        # raw 500. (json.JSONDecodeError can't cover this case.)
+        logger.warning("Claude response didn't match AnalysisResult schema: %s", raw[:200])
+        raise ClaudeParseError() from e

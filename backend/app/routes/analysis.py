@@ -46,16 +46,23 @@ def run_analysis(
         session_topic=session.topic,
     )
 
-    db_analysis = AnalysisDB(
-        session_id=session_id,
-        framework=result.framework,
-        categories=_serialise_categories(result.categories),
-        key_themes=result.key_themes,
-        decisions_made=result.decisions_made,
-        open_questions=result.open_questions,
-        recommended_next_steps=result.recommended_next_steps,
+    # Idempotent re-analysis: update the existing row if present (a session can
+    # only have one analysis — AnalysisDB.session_id is unique). Always-INSERT
+    # would raise IntegrityError on a second run.
+    db_analysis = (
+        db.query(AnalysisDB)
+        .filter(AnalysisDB.session_id == session_id)
+        .first()
     )
-    db.add(db_analysis)
+    if db_analysis is None:
+        db_analysis = AnalysisDB(session_id=session_id)
+        db.add(db_analysis)
+    db_analysis.framework = result.framework
+    db_analysis.categories = _serialise_categories(result.categories)
+    db_analysis.key_themes = result.key_themes
+    db_analysis.decisions_made = result.decisions_made
+    db_analysis.open_questions = result.open_questions
+    db_analysis.recommended_next_steps = result.recommended_next_steps
     db.flush()
 
     session.status = "analysed"

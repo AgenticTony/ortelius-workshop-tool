@@ -8,7 +8,10 @@ import 'participant_session_controller.dart';
 /// Participant join screen: enter a session's 6-char access code + a display
 /// name, then join and navigate to the workshop room.
 class JoinScreen extends ConsumerStatefulWidget {
-  const JoinScreen({super.key});
+  const JoinScreen({super.key, this.initialCode});
+
+  /// Access code pre-filled from the URL (the QR-code join path), if any.
+  final String? initialCode;
 
   @override
   ConsumerState<JoinScreen> createState() => _JoinScreenState();
@@ -22,9 +25,9 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
   @override
   void initState() {
     super.initState();
-    // Pre-fill the access code if present in the URL (the QR code path appends
-    // ?code=ABC123 so a participant scanning it lands here ready to join).
-    final code = Uri.base.queryParameters['code'];
+    // Pre-fill the access code if the QR-code join URL provided one (passed in
+    // from the router, which reads the fragment's query param — see app_router).
+    final code = widget.initialCode;
     if (code != null && code.isNotEmpty) {
       _codeController.text = code;
     }

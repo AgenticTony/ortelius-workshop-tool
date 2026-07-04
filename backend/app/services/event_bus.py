@@ -75,7 +75,12 @@ class EventBus:
             logger.warning("publish() called before loop captured; event dropped: %s %s", event_type, data)
             return
         payload = {"type": event_type, "data": data}
-        for queue in subscribers:
+        # Snapshot to a list: publish() runs on a threadpool thread while
+        # unsubscribe() (on the event loop) can discard from / delete the same
+        # set concurrently. Iterating the live set across that mutation raises
+        # `RuntimeError: Set changed size during iteration`. The snapshot is a
+        # cheap copy of the (typically small) subscriber set.
+        for queue in list(subscribers):
             # call_soon_threadsafe is safe from any thread, including the
             # threadpool threads that run sync route handlers.
             loop.call_soon_threadsafe(queue.put_nowait, payload)

@@ -24,6 +24,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen> {
   Object? _error;
 
   Future<void> _check() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -31,11 +32,13 @@ class _HealthScreenState extends ConsumerState<HealthScreen> {
     try {
       final api = ref.read(workshopApiProvider);
       final result = await api.health();
+      if (!mounted) return; // navigated away during the await
       setState(() => _result = result);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = e);
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 

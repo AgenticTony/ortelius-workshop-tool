@@ -1,4 +1,4 @@
-import random
+import secrets
 import string
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -65,4 +65,6 @@ class JoinByCodeRequest(BaseModel):
 
 def generate_access_code(length: int = 6) -> str:
     chars = string.ascii_uppercase + string.digits
-    return "".join(random.choices(chars, k=length))
+    # secrets.choice (CSPRNG) rather than random.choices (Mersenne Twister) —
+    # access codes are a join credential, so use a cryptographically secure RNG.
+    return "".join(secrets.choice(chars) for _ in range(length))

@@ -35,10 +35,12 @@ Stream<SseEvent> subscribeSse(String sessionId, Dio dio) {
 
   final source = web.EventSource(url);
 
-  // Messages: the server sends `event: idea_added\ndata: {...}\n\n`. EventSource
-  // fires the named event (idea_added/idea_voted/...) AND a generic message
-  // event. We listen on `onMessage` since our data payload always carries the
-  // type field in the JSON — SseEvent.fromJson reads it.
+  // Messages: the server sends frames as `data: {...}\n\n` with NO `event:`
+  // field, so EventSource dispatches a generic "message" event for each one.
+  // (If the server tagged frames with `event: idea_added`, onMessage would NOT
+  // fire — the SSE spec routes named events to addEventListener(name) only.)
+  // The event type is carried inside the JSON payload's "type" key, which
+  // SseEvent.fromJson reads.
   final messageSub = source.onMessage.listen((event) {
     final jsData = event.data;
     if (jsData == null) return;

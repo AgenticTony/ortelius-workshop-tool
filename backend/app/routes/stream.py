@@ -47,8 +47,16 @@ async def idea_stream(session_id: str, db: DBSession = Depends(get_db)):
                     # because mobile browsers buffer until frequent flushes.
                     payload = await asyncio.wait_for(queue.get(), timeout=5.0)
                     data = json.dumps(payload, default=str)
-                    event_type = payload.get("type", "message")
-                    yield f"event: {event_type}\ndata: {data}\n\n"
+                    # No `event:` field: the event type is carried in the JSON
+                    # payload's "type" key (parsed by SseEvent.fromJson). Per the
+                    # SSE spec, a frame WITHOUT an event: field dispatches a
+                    # generic "message" event — which is what EventSource.onMessage
+                    # listens for on web. Adding `event: idea_added` here would
+                    # route to a *named* listener and skip onMessage entirely,
+                    # so the web client would connect but never fire. The mobile
+                    # (Dio) client parses the data: line directly and ignores the
+                    # event: field either way.
+                    yield f"data: {data}\n\n"
                 except asyncio.TimeoutError:
                     yield ": heartbeat\n\n"
         except asyncio.CancelledError:
