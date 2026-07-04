@@ -24,6 +24,7 @@ ENV PATH="/opt/flutter/bin:${PATH}"
 # published as Linux tarballs).
 RUN curl -fsSL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_${FLUTTER_VERSION}-stable.tar.xz \
     | tar -xJ -C /opt \
+    && git config --global --add safe.directory /opt/flutter \
     && flutter --version
 
 WORKDIR /app
