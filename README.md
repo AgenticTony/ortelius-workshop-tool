@@ -31,8 +31,20 @@ A lightweight digital tool for capturing, structuring, and summarising workshop 
 workshop-tool/
 ├── backend/ # FastAPI server, Claude API integration, PDF generation
 ├── frontend/ # Flutter app (mobile + web)
-├── docs/ # Architecture diagrams, API contract
+├── docs/ # Architecture, API reference, eval, prompt design
 ├── tests/ # AI evaluation dataset and test cases
+
+## Documentation
+
+| Doc | What it covers |
+|-----|----------------|
+| [`docs/architecture.md`](docs/architecture.md) | System diagram, components, data flow, key decisions |
+| [`docs/api_reference.md`](docs/api_reference.md) | Every endpoint with curl examples + error codes |
+| [`docs/frameworks.md`](docs/frameworks.md) | How to add a new analysis framework (config, not code) |
+| [`docs/prompt_design.md`](docs/prompt_design.md) | The AI layer: prompt, versioning, logging, reliability |
+| [`docs/evaluation.md`](docs/evaluation.md) | Eval methodology, dataset, accuracy results |
+| [`docs/future_development.md`](docs/future_development.md) | What's brittle, next steps, cost analysis |
+| [`docs/backend-roadmap.md`](docs/backend-roadmap.md) / [`docs/frontend-roadmap.md`](docs/frontend-roadmap.md) | Phase-by-phase build history |
 
 ## Setup
 
