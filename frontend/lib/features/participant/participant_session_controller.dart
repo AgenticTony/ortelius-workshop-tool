@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_providers.dart';
 import '../../core/api/workshop_api.dart';
+import '../../core/reconnect.dart';
 import '../../models/models.dart';
 import '../../services/sse_client.dart';
 
@@ -86,6 +87,10 @@ class ParticipantSessionController
       }
       final session = await _api.getSession(sessionId);
       final ideas = await _api.listIdeas(sessionId);
+      // Source the SSE token from storage (single source of truth, same one the
+      // REST interceptor uses) so a storage-write failure can't leave SSE
+      // connected while submit/vote 401s.
+      _streamToken = await _api.tokenFor(sessionId);
       state = state.copyWith(
         session: session,
         participantId: join.participantId,
@@ -108,6 +113,10 @@ class ParticipantSessionController
       final join = await _api.joinSession(sessionId, name.trim());
       final session = await _api.getSession(sessionId);
       final ideas = await _api.listIdeas(sessionId);
+      // Source the SSE token from storage (single source of truth, same one the
+      // REST interceptor uses) so a storage-write failure can't leave SSE
+      // connected while submit/vote 401s.
+      _streamToken = await _api.tokenFor(sessionId);
       state = state.copyWith(
         session: session,
         participantId: join.participantId,
@@ -189,6 +198,7 @@ class ParticipantSessionController
   void dismissError() => state = state.copyWith(clearError: true);
 
   String? _streamSessionId; // the session we're (re)connecting to
+  String? _streamToken; // participant/facilitator token for the SSE stream
   bool _disposed = false; // guards reconnection after dispose
   Timer? _reconnectTimer;
   int _reconnectAttempts = 0; // for exponential backoff
@@ -198,7 +208,17 @@ class ParticipantSessionController
     _reconnectTimer?.cancel();
     _sseSub?.cancel();
     state = state.copyWith(connected: false);
-    _sseSub = _sse.subscribe(sessionId).listen(
+    final token = _streamToken;
+    if (token == null || token.isEmpty) {
+      // No usable token (e.g. storage write failed, or resume before join).
+      // Surface it instead of subscribing with '' and looping 401 forever.
+      state = state.copyWith(
+        connected: false,
+        error: 'Not authenticated for live updates — please rejoin.',
+      );
+      return;
+    }
+    _sseSub = _sse.subscribe(sessionId, token: token).listen(
       _onSseEvent,
       onError: (Object e) {
         state = state.copyWith(connected: false, error: '$e');
@@ -215,16 +235,14 @@ class ParticipantSessionController
   }
 
   /// Reconnect the SSE stream after a delay, so a backend restart or brief
-  /// network blip doesn't strand the client. Uses exponential backoff with a
-  /// cap so a dead/ended session isn't hammered indefinitely (2s, 4s, 8s … 30s).
+  /// network blip doesn't strand the client. Exponential backoff with jitter
+  /// and a 30s cap (see [reconnectDelay]) — a dead/ended session is retried
+  /// less and less aggressively rather than hammered every 2s.
   void _scheduleReconnect() {
     if (_disposed || _streamSessionId == null) return;
     _reconnectTimer?.cancel();
     _reconnectAttempts += 1;
-    // Cap at 30s; jitter ±25% to avoid a thundering herd of reconnects.
-    final base = (_reconnectAttempts * 2).clamp(2, 30);
-    final delay = Duration(seconds: base);
-    _reconnectTimer = Timer(delay, () {
+    _reconnectTimer = Timer(reconnectDelay(_reconnectAttempts), () {
       if (_disposed || _streamSessionId == null) return;
       _openStream(_streamSessionId!);
     });

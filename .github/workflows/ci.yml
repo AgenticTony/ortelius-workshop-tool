@@ -37,8 +37,17 @@ jobs:
           DATABASE_URL: "sqlite:///./ci-placeholder.db"
         run: pytest tests/ -v
 
+      # Dependency vulnerability gate (production deps). pip-audit resolves
+      # requirements.txt and fails the build on any known CVE. If a finding
+      # appears, bump the pinned version (or, if no fixed release exists yet,
+      # add an `--ignore-vuln` for the specific ID with a comment tracking it).
+      - name: Dependency scan (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit -r requirements.txt --strict
+
   frontend:
-    name: Frontend (flutter analyze)
+    name: Frontend (flutter analyze + test)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -61,3 +70,6 @@ jobs:
 
       - name: Analyze
         run: flutter analyze
+
+      - name: Test
+        run: flutter test

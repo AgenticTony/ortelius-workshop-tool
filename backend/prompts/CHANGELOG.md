@@ -15,6 +15,27 @@ with data behind it.
 - Accuracy delta: <before → after, per framework>
 ```
 
+## v2 (2026-07-04)
+
+- **File:** `clustering_v2.md`
+- **What changed:** Two fixes to the JSON skeleton in the prompt (wording
+  and rules unchanged):
+  1. Replaced the doubled `{{`/`}}` braces with single `{`/`}` — a leftover
+     from the `.format()` era that survived the switch to `str.replace`, so
+     v1's "valid JSON matching this exact structure" example was itself
+     invalid JSON.
+  2. Inject the real `session_id` (new `{session_id}` placeholder) instead of
+     leaving the literal text `<session_id>`. `AnalysisResult.session_id` is
+     required, so v1 relied on the model inferring the id from the user
+     message; if it didn't, `AnalysisResult(**parsed)` raised
+     `ValidationError` (now caught as `ClaudeParseError`, but the root cause
+     was the prompt never naming the value).
+- **Why:** A spec-following or smaller model is likelier to echo the example
+  verbatim; v1 would then hand back malformed JSON or a placeholder id. v2
+  shows correct, fillable JSON.
+- **Accuracy:** not re-measured (no model behavior change expected — Sonnet
+  already coped with both defects); rerun `eval/run_eval.py` to confirm.
+
 ## v1 (2026-07-03)
 
 - **File:** `clustering_v1.md`

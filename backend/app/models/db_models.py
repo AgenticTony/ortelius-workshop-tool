@@ -15,9 +15,15 @@ class ParticipantDB(Base):
     __tablename__ = "participants"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: uuid.uuid4().hex)
-    session_id: Mapped[str] = mapped_column(String, ForeignKey("sessions.id"))
+    # Indexed: token verification scans participants by session_id (O(log N)
+    # lookup instead of a sequential scan per authed request).
+    session_id: Mapped[str] = mapped_column(String, ForeignKey("sessions.id"), index=True)
     name: Mapped[str] = mapped_column(String)
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+    # SHA-256 hash of the participant bearer token, issued once at join and
+    # required to submit ideas / vote / open the SSE stream. Nullable for
+    # back-compat with rows created before participant auth existed.
+    token_hash: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
 
 
 class SessionDB(Base):

@@ -43,7 +43,7 @@ class WorkshopApi {
     final session = Session.fromJson(res.data as Map<String, dynamic>);
     // Persist the facilitator token immediately if one was issued.
     if (session.facilitatorToken != null) {
-      await _tokens.save(session.id, session.facilitatorToken!);
+      await _tokens.saveFacilitator(session.id, session.facilitatorToken!);
     }
     return session;
   }
@@ -54,13 +54,15 @@ class WorkshopApi {
     return Session.fromJson(res.data as Map<String, dynamic>);
   }
 
-  /// POST /sessions/{id}/join?name=...
+  /// POST /sessions/{id}/join  (name in the JSON body — PII stays out of URLs)
   Future<JoinResponse> joinSession(String sessionId, String name) async {
     final res = await _dio.post(
       '/sessions/$sessionId/join',
-      queryParameters: {'name': name},
+      data: {'name': name},
     );
-    return JoinResponse.fromJson(res.data as Map<String, dynamic>);
+    final join = JoinResponse.fromJson(res.data as Map<String, dynamic>);
+    await _persistParticipantToken(join, sessionId);
+    return join;
   }
 
   /// POST /sessions/join/{access_code}
@@ -69,7 +71,16 @@ class WorkshopApi {
       '/sessions/join/$accessCode',
       data: {'name': name},
     );
-    return JoinResponse.fromJson(res.data as Map<String, dynamic>);
+    final join = JoinResponse.fromJson(res.data as Map<String, dynamic>);
+    // The joined session id is in the response (the caller only knew the code).
+    await _persistParticipantToken(join, join.sessionId ?? '');
+    return join;
+  }
+
+  Future<void> _persistParticipantToken(JoinResponse join, String sessionId) async {
+    if (join.participantToken != null && sessionId.isNotEmpty) {
+      await _tokens.saveParticipant(sessionId, join.participantToken!);
+    }
   }
 
   // ── Ideas ──────────────────────────────────────────────────
@@ -148,30 +159,37 @@ class WorkshopApi {
 
   // ── Internals ──────────────────────────────────────────────
 
-  /// Interceptor: best-effort attach a stored token to known protected paths
-  /// so callers don't have to pass headers manually everywhere. Only /analyse
-  /// and /report require it; we check the path.
+  /// Interceptor: attach the stored bearer token to protected paths so callers
+  /// don't pass headers manually. Facilitator token for /analyse and /report;
+  /// participant token (falling back to facilitator) for the idea routes.
   Future<void> _attachTokenIfKnown(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
     final path = options.path;
-    if (path.endsWith('/analyse') || path.endsWith('/report')) {
-      // Extract session_id from /sessions/{id}/...
-      final segments = path.split('/').where((s) => s.isNotEmpty).toList();
-      if (segments.length >= 2 && segments[0] == 'sessions') {
-        final sessionId = segments[1];
-        final token = await _tokens.read(sessionId);
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
+    final segments = path.split('/').where((s) => s.isNotEmpty).toList();
+    if (segments.length >= 2 && segments[0] == 'sessions') {
+      final sessionId = segments[1];
+      final String? token;
+      if (path.endsWith('/analyse') || path.endsWith('/report')) {
+        token = await _tokens.readFacilitator(sessionId);
+      } else {
+        // Idea submit/vote/list: participant preferred, facilitator as fallback.
+        token = await _tokens.readAny(sessionId);
+      }
+      if (token != null) {
+        options.headers['Authorization'] = 'Bearer $token';
       }
     }
     handler.next(options);
   }
 
   Future<Map<String, String>> _authHeader(String sessionId) async {
-    final token = await _tokens.read(sessionId);
+    final token = await _tokens.readFacilitator(sessionId);
     return token == null ? {} : {'Authorization': 'Bearer $token'};
   }
+
+  /// Best-available bearer token for a session (participant or facilitator).
+  /// Used by controllers to authenticate the SSE live stream.
+  Future<String?> tokenFor(String sessionId) => _tokens.readAny(sessionId);
 }

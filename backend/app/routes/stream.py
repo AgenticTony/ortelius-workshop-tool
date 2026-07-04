@@ -11,14 +11,12 @@ import asyncio
 import json
 import logging
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Header, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session as DBSession
 
-from app.dependencies import get_db
-from app.errors import SessionNotFoundError
-from app.models.db_models import SessionDB
-from app.services.event_bus import event_bus
+from app.dependencies import _extract_bearer, get_db, get_event_bus, resolve_principal
+from app.services.event_bus import EventBusProtocol
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +24,27 @@ router = APIRouter(tags=["stream"])
 
 
 @router.get("/sessions/{session_id}/ideas/stream")
-async def idea_stream(session_id: str, db: DBSession = Depends(get_db)):
-    """Stream live session events as Server-Sent Events."""
-    session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
-    if not session:
-        raise SessionNotFoundError(session_id)
+async def idea_stream(
+    session_id: str,
+    token: str | None = Query(default=None, description="Participant or facilitator bearer token (web/EventSource path)."),
+    authorization: str | None = Header(default=None),
+    db: DBSession = Depends(get_db),
+    bus: EventBusProtocol = Depends(get_event_bus),
+):
+    """Stream live session events as Server-Sent Events.
 
-    queue = await event_bus.subscribe(session_id)
+    Authenticated. The token is accepted from EITHER the query string OR the
+    Authorization header: web's EventSource can't set headers (so it uses
+    ``?token=``), while mobile/desktop (Dio) send a header to keep the token
+    out of URLs/proxy logs. Both resolve to the same [resolve_principal].
+    """
+    tok = token
+    if not tok and authorization:
+        tok = _extract_bearer(authorization)  # raises AuthError on a malformed header
+    # resolve_principal raises AuthenticationError (401) or SessionNotFoundError (404).
+    resolve_principal(session_id, tok, db)
+
+    queue = await bus.subscribe(session_id)
 
     async def event_generator():
         # Drop the DB session — we don't need it across the long-lived stream.
@@ -63,7 +75,7 @@ async def idea_stream(session_id: str, db: DBSession = Depends(get_db)):
             logger.debug("SSE client disconnected for session %s", session_id)
             raise
         finally:
-            await event_bus.unsubscribe(session_id, queue)
+            await bus.unsubscribe(session_id, queue)
 
     return StreamingResponse(
         event_generator(),

@@ -8,7 +8,8 @@ FROM python:3.13-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    APP_ENV=production
 
 # System deps: build tooling for psycopg2 (fallback), curl for healthchecks.
 RUN apt-get update \

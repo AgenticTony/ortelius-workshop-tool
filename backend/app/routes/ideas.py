@@ -3,35 +3,67 @@ import json
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session as DBSession
 
-from app.dependencies import get_db
+from app.dependencies import Principal, get_db, get_event_bus, get_principal
 from app.errors import IdeaNotFoundError, SessionNotFoundError
 from app.models import Idea, IdeaCreate
-from app.models.db_models import IdeaDB, SessionDB
+from app.models.db_models import IdeaDB, ParticipantDB, SessionDB
 from app.rate_limit import limiter
-from app.services.event_bus import EVENT_IDEA_ADDED, EVENT_IDEA_VOTED, event_bus
+from app.services.event_bus import EVENT_IDEA_ADDED, EVENT_IDEA_VOTED, EventBusProtocol
 
 router = APIRouter(prefix="/sessions/{session_id}/ideas", tags=["ideas"])
 
 
 @router.post("", response_model=Idea)
 @limiter.limit("30/minute")
-def submit_idea(request: Request, session_id: str, body: IdeaCreate, db: DBSession = Depends(get_db)):
+def submit_idea(
+    request: Request,
+    session_id: str,
+    body: IdeaCreate,
+    principal: Principal = Depends(get_principal),
+    db: DBSession = Depends(get_db),
+    bus: EventBusProtocol = Depends(get_event_bus),
+):
     session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not session:
         raise SessionNotFoundError(session_id)
 
-    idea = IdeaDB(session_id=session_id, **body.model_dump())
+    # Author is the authenticated participant — ignore any client-supplied id
+    # so a participant can't post under another's identity. A facilitator (no
+    # participant_id) may seed ideas using the body's fields.
+    if principal.participant_id:
+        participant = (
+            db.query(ParticipantDB).filter(ParticipantDB.id == principal.participant_id).first()
+        )
+        author_id = principal.participant_id
+        author_name = participant.name if participant else body.participant_name
+    else:
+        author_id = body.participant_id
+        author_name = body.participant_name
+
+    idea = IdeaDB(
+        session_id=session_id,
+        participant_id=author_id,
+        participant_name=author_name,
+        content=body.content,
+        category=body.category,
+    )
     db.add(idea)
     db.commit()
     db.refresh(idea)
 
     # Notify live listeners (SSE) that a new idea landed.
-    event_bus.publish(session_id, EVENT_IDEA_ADDED, _idea_to_dict(idea))
+    bus.publish(session_id, EVENT_IDEA_ADDED, _idea_to_dict(idea))
     return _to_idea(idea)
 
 
 @router.get("", response_model=list[Idea])
-def list_ideas(session_id: str, db: DBSession = Depends(get_db)):
+def list_ideas(
+    session_id: str,
+    principal: Principal = Depends(get_principal),
+    db: DBSession = Depends(get_db),
+):
+    # principal existence authenticates the caller as a session member.
+    _ = principal
     session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not session:
         raise SessionNotFoundError(session_id)
@@ -40,8 +72,15 @@ def list_ideas(session_id: str, db: DBSession = Depends(get_db)):
 
 
 @router.post("/{idea_id}/vote", response_model=Idea)
-def vote_idea(session_id: str, idea_id: str, db: DBSession = Depends(get_db)):
-    """Upvote an idea. v1 is a simple increment; per-participant dedup is future work."""
+def vote_idea(
+    session_id: str,
+    idea_id: str,
+    principal: Principal = Depends(get_principal),
+    db: DBSession = Depends(get_db),
+    bus: EventBusProtocol = Depends(get_event_bus),
+):
+    """Upvote an idea. Authenticated so per-participant dedup is now possible."""
+    _ = principal
     session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not session:
         raise SessionNotFoundError(session_id)
@@ -58,7 +97,7 @@ def vote_idea(session_id: str, idea_id: str, db: DBSession = Depends(get_db)):
     db.commit()
     db.refresh(idea)
 
-    event_bus.publish(session_id, EVENT_IDEA_VOTED, {"idea_id": idea.id, "votes": idea.votes})
+    bus.publish(session_id, EVENT_IDEA_VOTED, {"idea_id": idea.id, "votes": idea.votes})
     return _to_idea(idea)
 
 

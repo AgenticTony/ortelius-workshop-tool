@@ -85,7 +85,7 @@ async def _exercise_publish_after_removal():
 # ── #5: Claude schema mismatch → 502 ClaudeParseError ────────
 
 
-def test_analyse_bad_schema_returns_502(client, sample_session, auth_headers):
+def test_analyse_bad_schema_returns_502(client, sample_session, auth_headers, participant_headers):
     """If analyse_ideas raises ClaudeParseError (valid JSON, bad schema), the
     route returns the designed 502 — not a raw 500. Patches at the route's
     import location (where the name is looked up), so no real API call fires."""
@@ -94,6 +94,7 @@ def test_analyse_bad_schema_returns_502(client, sample_session, auth_headers):
     session_id = sample_session["id"]
     client.post(
         f"/sessions/{session_id}/ideas",
+        headers=participant_headers,
         json={"participant_id": "p1", "participant_name": "Anna", "content": "X"},
     )
     with patch("app.routes.analysis.analyse_ideas", side_effect=ClaudeParseError()):
@@ -124,13 +125,14 @@ def test_analyse_ideas_raises_parse_error_on_schema_mismatch(monkeypatch):
 
 @patch("app.routes.analysis.analyse_ideas", return_value=MOCK_ANALYSIS)
 def test_rerun_analysis_upserts_not_duplicates(
-    mock_claude, client, sample_session, auth_headers
+    mock_claude, client, sample_session, auth_headers, participant_headers
 ):
     """A second /analyse on the same session must succeed (upsert), not raise
     IntegrityError on the unique(session_id) constraint."""
     session_id = sample_session["id"]
     client.post(
         f"/sessions/{session_id}/ideas",
+        headers=participant_headers,
         json={"participant_id": "p1", "participant_name": "Anna", "content": "X"},
     )
     first = client.post(
@@ -192,3 +194,71 @@ def test_access_code_module_uses_secrets_not_random():
     # Check the actual imports, not comment text.
     assert hasattr(session_module, "secrets")
     assert "secrets.choice" in open(session_module.__file__).read()
+
+
+# ── Production hardening: backpressure + DI seam ──────────────
+
+
+@pytest.mark.asyncio
+async def test_event_bus_queue_is_bounded_with_drop_oldest():
+    """A slow subscriber's queue is capped; overflow drops the oldest event.
+
+    Guards server memory over a long workshop: without a bound a stalled SSE
+    client would let its queue grow without limit.
+    """
+    from app.services.event_bus import MAX_SUBSCRIBER_QUEUE, _safe_put
+
+    event_bus.set_loop(asyncio.get_running_loop())
+    q: asyncio.Queue = await event_bus.subscribe("bounded-session")
+    try:
+        # Fill past the cap.
+        for i in range(MAX_SUBSCRIBER_QUEUE + 10):
+            _safe_put(q, {"i": i})
+        assert q.qsize() == MAX_SUBSCRIBER_QUEUE  # never exceeds the cap
+        # The oldest events were dropped, so the head is a late index, not 0.
+        head = q.get_nowait()
+        assert head["i"] > 0
+    finally:
+        await event_bus.unsubscribe("bounded-session", q)
+
+
+def test_claude_client_is_injectable():
+    """The Anthropic client is constructed lazily and has a substitution seam.
+
+    Dependency inversion: tests (and a future mock/alt provider) inject via
+    set_claude_client instead of monkeypatching a module global.
+    """
+    from app.services import claude_service
+
+    sentinel = object()
+    claude_service.set_claude_client(sentinel)
+    try:
+        assert claude_service.get_claude_client() is sentinel
+    finally:
+        claude_service.set_claude_client(None)  # reset for other tests
+
+
+def test_production_config_rejects_missing_required_settings():
+    """APP_ENV=production must fail fast on missing DATABASE_URL / CLAUDE_API_KEY
+    and on a wildcard CORS origin — so a misconfigured deploy is loud at boot."""
+    from pydantic import ValidationError
+
+    from app.config import Settings
+
+    # Missing DATABASE_URL + CLAUDE_API_KEY, wildcard CORS → three problems.
+    with pytest.raises(ValidationError):
+        Settings(
+            app_env="production",
+            database_url="",
+            claude_api_key="",
+            cors_origins="*",
+        )
+
+    # Fully configured production settings validate cleanly.
+    ok = Settings(
+        app_env="production",
+        database_url="postgresql://u:p@h/db",
+        claude_api_key="sk-test",
+        cors_origins="https://app.example.com",
+    )
+    assert ok.is_production is True

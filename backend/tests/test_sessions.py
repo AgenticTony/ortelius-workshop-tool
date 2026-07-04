@@ -41,28 +41,37 @@ def test_get_session_not_found(client):
 
 
 def test_join_session(client, sample_session):
-    response = client.post(f"/sessions/{sample_session['id']}/join?name=Anna")
+    response = client.post(
+        f"/sessions/{sample_session['id']}/join", json={"name": "Anna"}
+    )
     assert response.status_code == 200
     data = response.json()
     assert "participant_id" in data
     # JoinResponse carries participant_id + session_id (the latter lets a
     # code-join client resolve the session it joined).
     assert data["session_id"] == sample_session["id"]
-    assert len(data) == 2
+    assert "participant_token" in data
+    assert data["participant_token"]  # issued once at join
+    assert len(data) == 3
 
 
 def test_join_session_empty_name(client, sample_session):
-    response = client.post(f"/sessions/{sample_session['id']}/join?name=")
+    response = client.post(
+        f"/sessions/{sample_session['id']}/join", json={"name": ""}
+    )
     assert response.status_code == 422
 
 
 def test_join_session_whitespace_name(client, sample_session):
-    response = client.post(f"/sessions/{sample_session['id']}/join?name=%20%20")
+    # Whitespace passes the model's min_length but the route strips + rejects.
+    response = client.post(
+        f"/sessions/{sample_session['id']}/join", json={"name": "   "}
+    )
     assert response.status_code == 422
 
 
 def test_join_session_not_found(client):
-    response = client.post("/sessions/doesnotexist/join?name=Anna")
+    response = client.post("/sessions/doesnotexist/join", json={"name": "Anna"})
     assert response.status_code == 404
 
 
@@ -93,8 +102,8 @@ def test_join_by_code_validates_name(client, sample_session):
 
 
 def test_get_session_shows_participants(client, sample_session):
-    client.post(f"/sessions/{sample_session['id']}/join?name=Anna")
-    client.post(f"/sessions/{sample_session['id']}/join?name=Mohand")
+    client.post(f"/sessions/{sample_session['id']}/join", json={"name": "Anna"})
+    client.post(f"/sessions/{sample_session['id']}/join", json={"name": "Mohand"})
     response = client.get(f"/sessions/{sample_session['id']}")
     assert response.status_code == 200
     participants = response.json()["participants"]

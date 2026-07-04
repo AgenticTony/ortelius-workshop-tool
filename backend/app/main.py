@@ -12,15 +12,15 @@ from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.config import settings
+from app.dependencies import get_event_bus
 from app.errors import AuthenticationError, WorkshopError
 
 # Ensure app loggers (e.g. claude_service's claude_call line) surface at INFO.
 # Without this, uvicorn's log config captures only uvicorn.* loggers and app
-# log lines are dropped. Safe to call repeatedly.
+# app log lines are dropped. Safe to call repeatedly.
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 from app.rate_limit import limiter
 from app.routes import analysis, ideas, sessions, stream
-from app.services.event_bus import event_bus
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Capture the running event loop so sync route handlers can publish SSE
     events via call_soon_threadsafe (they run in threadpool threads)."""
-    event_bus.set_loop(asyncio.get_running_loop())
+    get_event_bus().set_loop(asyncio.get_running_loop())
     yield
 
 

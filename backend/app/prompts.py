@@ -9,9 +9,9 @@ from __future__ import annotations
 import functools
 from pathlib import Path
 
-# The current prompt version. Bump when introducing clustering_v2.md and
+# The current prompt version. Bump when introducing a new clustering_vN.md and
 # record the change in prompts/CHANGELOG.md. Logged on every Claude call.
-PROMPT_VERSION = "clustering_v1"
+PROMPT_VERSION = "clustering_v2"
 
 _PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts"
 
@@ -41,13 +41,17 @@ def render_clustering_prompt(
     framework_description: str,
     categories_block: str,
     categories_json_keys: str,
+    session_id: str,
     version: str = PROMPT_VERSION,
 ) -> str:
     """Render the clustering system prompt for a framework config.
 
     The template uses ``{name}`` placeholders that are NOT Python format
-    fields (the prompt body contains literal braces for the JSON example),
-    so we do targeted str.replace rather than str.format.
+    fields, so we do targeted str.replace rather than str.format. The JSON
+    example's literal braces are single ``{``/``}`` in the template (v1 wrongly
+    doubled them — a leftover from a .format() era that produced invalid JSON
+    in the example). ``session_id`` is injected so the model echoes the real id
+    rather than a ``<session_id>`` placeholder (AnalysisResult requires it).
     """
     template = _load_raw(version)
     return (
@@ -57,4 +61,5 @@ def render_clustering_prompt(
         .replace("{framework_description}", framework_description)
         .replace("{categories_block}", categories_block)
         .replace("{categories_json_keys}", categories_json_keys)
+        .replace("{session_id}", session_id)
     )
