@@ -68,17 +68,18 @@ def test_auth_error_includes_www_authenticate_header(client, sample_session):
 # ── Claude outage / parse failure (mocked) ───────────────────
 
 
-def _seed_idea(client, session_id):
+def _seed_idea(client, session_id, headers):
     r = client.post(
         f"/sessions/{session_id}/ideas",
+        headers=headers,
         json={"participant_id": "p1", "participant_name": "Anna", "content": "An idea"},
     )
     assert r.status_code == 200
 
 
-def test_claude_outage_returns_503(client, sample_session, auth_headers):
+def test_claude_outage_returns_503(client, sample_session, auth_headers, participant_headers):
     session_id = sample_session["id"]
-    _seed_idea(client, session_id)
+    _seed_idea(client, session_id, participant_headers)
 
     def _raise(*args, **kwargs):
         raise anthropic.APIConnectionError(request=None)  # type: ignore[arg-type]
@@ -92,9 +93,9 @@ def test_claude_outage_returns_503(client, sample_session, auth_headers):
     assert r.json()["code"] == "claude_error"
 
 
-def test_claude_parse_error_returns_502(client, sample_session, auth_headers):
+def test_claude_parse_error_returns_502(client, sample_session, auth_headers, participant_headers):
     session_id = sample_session["id"]
-    _seed_idea(client, session_id)
+    _seed_idea(client, session_id, participant_headers)
 
     with patch("app.routes.analysis.analyse_ideas", side_effect=ClaudeParseError()):
         r = client.post(
@@ -105,14 +106,14 @@ def test_claude_parse_error_returns_502(client, sample_session, auth_headers):
     assert r.json()["code"] == "claude_parse_error"
 
 
-def test_unknown_framework_on_analysis_returns_422(client, sample_session, auth_headers):
+def test_unknown_framework_on_analysis_returns_422(client, sample_session, auth_headers, participant_headers):
     """A session whose framework id isn't in the registry should 422, not 500.
 
     We simulate by patching analyse_ideas to raise FrameworkNotFoundError
     (which the real claude_service now does via _resolve_config).
     """
     session_id = sample_session["id"]
-    _seed_idea(client, session_id)
+    _seed_idea(client, session_id, participant_headers)
 
     with patch(
         "app.routes.analysis.analyse_ideas",
@@ -130,10 +131,10 @@ def test_unknown_framework_on_analysis_returns_422(client, sample_session, auth_
 
 
 def test_unhandled_exception_returns_clean_500(
-    client, sample_session, auth_headers
+    client, sample_session, auth_headers, participant_headers
 ):
     session_id = sample_session["id"]
-    _seed_idea(client, session_id)
+    _seed_idea(client, session_id, participant_headers)
 
     # TestClient re-raises server exceptions by default, preventing the global
     # handler from returning its clean 500. Disable that for this test so we

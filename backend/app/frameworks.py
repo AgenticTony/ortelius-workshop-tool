@@ -187,13 +187,14 @@ def build_custom_framework(categories: list[str]) -> FrameworkConfig:
 from app.prompts import render_clustering_prompt
 
 
-def build_system_prompt(config: FrameworkConfig) -> str:
+def build_system_prompt(config: FrameworkConfig, session_id: str) -> str:
     """Generate the Claude system prompt for a given framework config.
 
-    Delegates to the versioned template in prompts/clustering_v1.md (loaded
+    Delegates to the versioned template in prompts/clustering_v2.md (loaded
     via app.prompts) so prompt edits are config, not code. Injects category
     names + descriptions so Claude knows exactly what each category means —
-    not just its label.
+    not just its label — plus the real ``session_id`` (AnalysisResult requires
+    it, so the prompt must show the value, not a placeholder).
     """
     cat_block = "\n".join(
         f"- {c.id}: {c.description}" for c in config.categories
@@ -206,4 +207,5 @@ def build_system_prompt(config: FrameworkConfig) -> str:
         framework_description=config.description,
         categories_block=cat_block,
         categories_json_keys=cat_json_keys,
+        session_id=session_id,
     )

@@ -23,10 +23,30 @@ from app.prompts import PROMPT_VERSION
 
 logger = logging.getLogger(__name__)
 
-client = anthropic.Anthropic(
-    api_key=settings.claude_api_key,
-    base_url=settings.claude_base_url,
-)
+# The Anthropic client is constructed lazily on first use (not at import) so
+# the module imports cleanly even without a configured key, and so tests / a
+# future mock layer can substitute the client via ``set_claude_client`` instead
+# of monkeypatching module globals. This is the dependency-inversion seam for
+# the upstream LLM provider.
+_client: anthropic.Anthropic | None = None
+
+
+def get_claude_client() -> anthropic.Anthropic:
+    """Return the process-wide Anthropic client, constructing it on first use."""
+    global _client
+    if _client is None:
+        _client = anthropic.Anthropic(
+            api_key=settings.claude_api_key,
+            base_url=settings.claude_base_url,
+        )
+    return _client
+
+
+def set_claude_client(client: anthropic.Anthropic | None) -> None:
+    """Inject (or reset) the Anthropic client. Intended for tests/mocks."""
+    global _client
+    _client = client
+
 
 CORRECTIVE_PROMPT = (
     "Your previous response was not valid JSON. "
@@ -73,6 +93,7 @@ def _call_claude(
     Anthropic/network failure so the caller gets a clean 503.
     """
     started = time.monotonic()
+    client = get_claude_client()
     try:
         response = client.messages.create(
             model=CLAUDE_MODEL,
@@ -149,7 +170,7 @@ def analyse_ideas(
     "(workshop)"); the analysis route has the session object and passes it.
     """
     config = _resolve_config(framework, custom_categories)
-    system_prompt = build_system_prompt(config)
+    system_prompt = build_system_prompt(config, session_id)
 
     idea_list = "\n".join(
         f"- ID: {idea['id']}, Participant: {idea.get('participant_name', 'Unknown')}, "

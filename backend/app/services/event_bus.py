@@ -19,7 +19,7 @@ route handlers don't have to await it.
 import asyncio
 import logging
 from collections import defaultdict
-from typing import Any, Final
+from typing import Any, Final, Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +27,50 @@ logger = logging.getLogger(__name__)
 EVENT_IDEA_ADDED: Final[str] = "idea_added"
 EVENT_IDEA_VOTED: Final[str] = "idea_voted"
 EVENT_PARTICIPANT_JOINED: Final[str] = "participant_joined"
+
+# Per-subscriber queue cap. A slow/stalled SSE client accumulates at most this
+# many pending events; beyond it we drop the oldest (live state matters more
+# than history — a client can re-sync via the REST list endpoints). This bounds
+# memory over a long workshop instead of growing without limit.
+MAX_SUBSCRIBER_QUEUE: Final[int] = 256
+
+
+@runtime_checkable
+class EventBusProtocol(Protocol):
+    """The pub/sub contract the routes and SSE endpoint depend on.
+
+    The default implementation ([EventBus]) is in-memory and therefore
+    single-uvicorn-worker only. Multi-worker HA means implementing this
+    interface against a shared broker — Redis pub/sub or Postgres
+    LISTEN/NOTIFY — and wiring it via ``app.dependencies.get_event_bus``.
+    Routes depend on this Protocol, not the concrete class, so that swap is
+    config-only at the composition root.
+    """
+
+    def set_loop(self, loop: asyncio.AbstractEventLoop) -> None: ...
+    async def subscribe(self, session_id: str) -> asyncio.Queue: ...
+    async def unsubscribe(self, session_id: str, queue: asyncio.Queue) -> None: ...
+    def publish(self, session_id: str, event_type: str, data: Any) -> None: ...
+
+
+def _safe_put(queue: asyncio.Queue, payload: Any) -> None:
+    """Bounded-queue put with drop-oldest backpressure.
+
+    Runs on the event loop (scheduled via ``call_soon_threadsafe``). If the
+    subscriber queue is full, drop the oldest pending event and retry; this
+    keeps server memory bounded while preferring the freshest state.
+    """
+    try:
+        queue.put_nowait(payload)
+    except asyncio.QueueFull:
+        try:
+            queue.get_nowait()  # make room by dropping the oldest pending event
+        except asyncio.QueueEmpty:
+            pass
+        try:
+            queue.put_nowait(payload)
+        except asyncio.QueueFull:
+            logger.debug("SSE subscriber queue still full after drop; event dropped")
 
 
 class EventBus:
@@ -48,16 +92,18 @@ class EventBus:
 
     async def subscribe(self, session_id: str) -> asyncio.Queue:
         """Register a new subscriber queue for a session. Returns the queue."""
-        queue: asyncio.Queue = asyncio.Queue()
+        queue: asyncio.Queue = asyncio.Queue(maxsize=MAX_SUBSCRIBER_QUEUE)
         self._subscribers[session_id].add(queue)
         logger.debug("SSE subscriber added for session %s (%d total)", session_id, len(self._subscribers[session_id]))
         return queue
 
     async def unsubscribe(self, session_id: str, queue: asyncio.Queue) -> None:
         """Remove a subscriber queue. Safe to call if not subscribed."""
-        self._subscribers[session_id].discard(queue)
-        if not self._subscribers[session_id]:
-            del self._subscribers[session_id]
+        subscribers = self._subscribers.get(session_id)
+        if subscribers is not None:
+            subscribers.discard(queue)
+        if not self._subscribers.get(session_id):
+            self._subscribers.pop(session_id, None)
         logger.debug("SSE subscriber removed for session %s", session_id)
 
     def publish(self, session_id: str, event_type: str, data: Any) -> None:
@@ -82,8 +128,9 @@ class EventBus:
         # cheap copy of the (typically small) subscriber set.
         for queue in list(subscribers):
             # call_soon_threadsafe is safe from any thread, including the
-            # threadpool threads that run sync route handlers.
-            loop.call_soon_threadsafe(queue.put_nowait, payload)
+            # threadpool threads that run sync route handlers. _safe_put applies
+            # drop-oldest backpressure if the subscriber's bounded queue is full.
+            loop.call_soon_threadsafe(_safe_put, queue, payload)
 
 
 # Single shared instance (module-level). All routes and the stream endpoint

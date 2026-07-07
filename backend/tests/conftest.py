@@ -52,8 +52,24 @@ def sample_session(client):
 @pytest.fixture
 def sample_session_with_participant(client, sample_session):
     session_id = sample_session["id"]
-    client.post(f"/sessions/{session_id}/join?name=Anna")
+    client.post(f"/sessions/{session_id}/join", json={"name": "Anna"})
     return sample_session
+
+
+@pytest.fixture
+def sample_participant(client, sample_session):
+    """Join sample_session as 'Anna'; return the join response (has participant_token)."""
+    response = client.post(
+        f"/sessions/{sample_session['id']}/join", json={"name": "Anna"}
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+@pytest.fixture
+def participant_headers(sample_participant) -> dict:
+    """Authorization headers for the sample participant (submit/vote/list ideas)."""
+    return {"Authorization": f"Bearer {sample_participant['participant_token']}"}
 
 
 @pytest.fixture

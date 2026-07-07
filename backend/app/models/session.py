@@ -57,9 +57,25 @@ class JoinResponse(BaseModel):
     # doesn't otherwise know the session id) can fetch session details and
     # subscribe to the SSE stream. Additive, non-breaking.
     session_id: str | None = None
+    # Participant bearer token (issued once at join). Required to submit ideas,
+    # vote, and open the SSE stream. Only set on the join response — never
+    # persisted in plaintext (we store its hash) or re-served.
+    participant_token: str | None = None
 
 
 class JoinByCodeRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+class JoinRequest(BaseModel):
+    """Body for POST /sessions/{id}/join (the session-id join path).
+
+    The name travels in the JSON body — not the query string — so it never
+    lands in access logs, browser history, or referrer headers. (This path
+    used to send ``?name=`` which is a PII hygiene leak; the access-code join
+    already used a body.)
+    """
+
     name: str = Field(min_length=1, max_length=100)
 
 

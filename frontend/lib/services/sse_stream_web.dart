@@ -29,9 +29,12 @@ import '../models/models.dart';
 /// [dio] is unused on web (EventSource replaces Dio for SSE) but accepted to
 /// keep the signature identical across the two platform impls so the facade
 /// can call one `platform.subscribeSse(...)` unconditionally.
-Stream<SseEvent> subscribeSse(String sessionId, Dio dio) {
+Stream<SseEvent> subscribeSse(String sessionId, String token, Dio dio) {
   final controller = StreamController<SseEvent>.broadcast();
-  final url = '${AppConfig.apiBaseUrl}/sessions/$sessionId/ideas/stream';
+  // EventSource can't set headers, so the auth token rides in the query string.
+  // (Workshop-scoped, short-lived; protect access logs accordingly.)
+  final url =
+      '${AppConfig.apiBaseUrl}/sessions/$sessionId/ideas/stream?token=${Uri.encodeComponent(token)}';
 
   final source = web.EventSource(url);
 

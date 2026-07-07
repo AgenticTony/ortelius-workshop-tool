@@ -20,7 +20,11 @@ import '../models/models.dart';
 /// Mirrors [subscribeSse] in sse_stream_web.dart: returns a broadcast
 /// [Stream] of parsed [SseEvent]s. The caller owns the subscription and
 /// should cancel it when done (the controllers cancel on dispose/reconnect).
-Stream<SseEvent> subscribeSse(String sessionId, Dio dio) {
+///
+/// [token] is the participant-or-facilitator bearer token; Dio can set headers,
+/// so on mobile we send it as `Authorization: Bearer …` (the web impl must use
+/// a query param because EventSource can't set headers).
+Stream<SseEvent> subscribeSse(String sessionId, String token, Dio dio) {
   final controller = StreamController<SseEvent>.broadcast();
 
   () async {
@@ -29,7 +33,10 @@ Stream<SseEvent> subscribeSse(String sessionId, Dio dio) {
         '/sessions/$sessionId/ideas/stream',
         options: Options(
           responseType: ResponseType.stream,
-          headers: {'Accept': 'text/event-stream'},
+          headers: {
+            'Accept': 'text/event-stream',
+            'Authorization': 'Bearer $token',
+          },
           // SSE is long-lived; no overall timeout.
           receiveTimeout: null,
         ),

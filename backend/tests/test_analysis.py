@@ -64,10 +64,11 @@ def test_run_analysis_session_not_found(client):
 
 
 @patch("app.routes.analysis.analyse_ideas", return_value=MOCK_ANALYSIS)
-def test_run_analysis_success(mock_claude, client, sample_session, auth_headers):
+def test_run_analysis_success(mock_claude, client, sample_session, auth_headers, participant_headers):
     session_id = sample_session["id"]
     client.post(
         f"/sessions/{session_id}/ideas",
+        headers=participant_headers,
         json={"participant_id": "p1", "participant_name": "Anna", "content": "Good team"},
     )
 
@@ -84,10 +85,11 @@ def test_run_analysis_success(mock_claude, client, sample_session, auth_headers)
 
 
 @patch("app.routes.analysis.analyse_ideas", return_value=MOCK_ANALYSIS)
-def test_get_analysis_after_running(mock_claude, client, sample_session, auth_headers):
+def test_get_analysis_after_running(mock_claude, client, sample_session, auth_headers, participant_headers):
     session_id = sample_session["id"]
     client.post(
         f"/sessions/{session_id}/ideas",
+        headers=participant_headers,
         json={"participant_id": "p1", "participant_name": "Anna", "content": "Test idea"},
     )
     client.post(
@@ -101,10 +103,11 @@ def test_get_analysis_after_running(mock_claude, client, sample_session, auth_he
 
 
 @patch("app.routes.analysis.analyse_ideas", return_value=MOCK_ANALYSIS)
-def test_analysis_sets_status_to_analysed(mock_claude, client, sample_session, auth_headers):
+def test_analysis_sets_status_to_analysed(mock_claude, client, sample_session, auth_headers, participant_headers):
     session_id = sample_session["id"]
     client.post(
         f"/sessions/{session_id}/ideas",
+        headers=participant_headers,
         json={"participant_id": "p1", "participant_name": "Anna", "content": "Test"},
     )
     client.post(
@@ -117,10 +120,11 @@ def test_analysis_sets_status_to_analysed(mock_claude, client, sample_session, a
 
 
 @patch("app.routes.analysis.analyse_ideas", return_value=MOCK_ANALYSIS)
-def test_download_report(mock_claude, client, sample_session, auth_headers):
+def test_download_report(mock_claude, client, sample_session, auth_headers, participant_headers):
     session_id = sample_session["id"]
     client.post(
         f"/sessions/{session_id}/ideas",
+        headers=participant_headers,
         json={"participant_id": "p1", "participant_name": "Anna", "content": "Test"},
     )
     client.post(

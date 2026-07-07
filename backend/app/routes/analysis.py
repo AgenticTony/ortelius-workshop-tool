@@ -67,7 +67,6 @@ def run_analysis(
 
     session.status = "analysed"
     db.commit()
-
     return result
 
 

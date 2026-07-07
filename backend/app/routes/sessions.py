@@ -1,18 +1,25 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session as DBSession
 
-from app.dependencies import get_db
+from app.dependencies import get_db, get_event_bus
 from app.errors import (
     AccessCodeCollisionError,
     InvalidAccessCodeError,
     SessionNotFoundError,
 )
-from app.models import JoinByCodeRequest, JoinResponse, Participant, Session, SessionCreate
+from app.models import (
+    JoinByCodeRequest,
+    JoinRequest,
+    JoinResponse,
+    Participant,
+    Session,
+    SessionCreate,
+)
 from app.models.db_models import ParticipantDB, SessionDB
 from app.models.session import generate_access_code
 from app.rate_limit import limiter
-from app.security import generate_facilitator_token, hash_token
-from app.services.event_bus import EVENT_PARTICIPANT_JOINED, event_bus
+from app.security import generate_facilitator_token, generate_participant_token, hash_token
+from app.services.event_bus import EVENT_PARTICIPANT_JOINED, EventBusProtocol
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -37,16 +44,23 @@ def create_session(body: SessionCreate, db: DBSession = Depends(get_db)):
 
 @router.post("/join/{access_code}", response_model=JoinResponse)
 @limiter.limit("30/minute")
-def join_by_code(request: Request, access_code: str, body: JoinByCodeRequest, db: DBSession = Depends(get_db)):
+def join_by_code(request: Request, access_code: str, body: JoinByCodeRequest, db: DBSession = Depends(get_db), bus: EventBusProtocol = Depends(get_event_bus)):
     db_session = db.query(SessionDB).filter(SessionDB.access_code == access_code).first()
     if not db_session:
         raise InvalidAccessCodeError()
-    participant = ParticipantDB(session_id=db_session.id, name=body.name.strip())
+    token = generate_participant_token()
+    participant = ParticipantDB(
+        session_id=db_session.id,
+        name=body.name.strip(),
+        token_hash=hash_token(token),
+    )
     db.add(participant)
     db.commit()
     db.refresh(participant)
-    _publish_participant_joined(db_session.id, participant, db)
-    return JoinResponse(participant_id=participant.id, session_id=db_session.id)
+    _publish_participant_joined(db_session.id, participant, db, bus)
+    return JoinResponse(
+        participant_id=participant.id, session_id=db_session.id, participant_token=token
+    )
 
 
 @router.get("/{session_id}", response_model=Session)
@@ -59,19 +73,30 @@ def get_session(session_id: str, db: DBSession = Depends(get_db)):
 
 @router.post("/{session_id}/join", response_model=JoinResponse)
 @limiter.limit("30/minute")
-def join_session(request: Request, session_id: str, name: str = "", db: DBSession = Depends(get_db)):
-    if not name.strip():
-        # Input validation — keep as HTTPException for FastAPI's native 422 shape.
+def join_session(
+    request: Request,
+    session_id: str,
+    body: JoinRequest,
+    db: DBSession = Depends(get_db),
+    bus: EventBusProtocol = Depends(get_event_bus),
+):
+    # Name comes from the JSON body (PII stays out of URLs/logs). Whitespace-only
+    # names pass the model's min_length but must still be rejected.
+    name = body.name.strip()
+    if not name:
         raise HTTPException(status_code=422, detail="Name is required")
     db_session = db.query(SessionDB).filter(SessionDB.id == session_id).first()
     if not db_session:
         raise SessionNotFoundError(session_id)
-    participant = ParticipantDB(session_id=session_id, name=name.strip())
+    token = generate_participant_token()
+    participant = ParticipantDB(session_id=session_id, name=name, token_hash=hash_token(token))
     db.add(participant)
     db.commit()
     db.refresh(participant)
-    _publish_participant_joined(session_id, participant, db)
-    return JoinResponse(participant_id=participant.id, session_id=session_id)
+    _publish_participant_joined(session_id, participant, db, bus)
+    return JoinResponse(
+        participant_id=participant.id, session_id=session_id, participant_token=token
+    )
 
 
 def _unique_access_code(db: DBSession, max_attempts: int = 10) -> str:
@@ -96,10 +121,12 @@ def _to_session(db_session: SessionDB) -> Session:
     )
 
 
-def _publish_participant_joined(session_id: str, participant: ParticipantDB, db: DBSession) -> None:
+def _publish_participant_joined(
+    session_id: str, participant: ParticipantDB, db: DBSession, bus: EventBusProtocol
+) -> None:
     """Broadcast a participant_joined SSE event with the new participant count."""
     count = db.query(ParticipantDB).filter(ParticipantDB.session_id == session_id).count()
-    event_bus.publish(session_id, EVENT_PARTICIPANT_JOINED, {
+    bus.publish(session_id, EVENT_PARTICIPANT_JOINED, {
         "participant_id": participant.id,
         "name": participant.name,
         "participant_count": count,

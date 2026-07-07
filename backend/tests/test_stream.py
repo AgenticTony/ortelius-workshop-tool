@@ -73,12 +73,52 @@ async def test_event_bus_multiple_subscribers_each_receive():
         await event_bus.unsubscribe("session-3", q2)
 
 
-# ── Stream endpoint: error path only ─────────────────────────
+# ── Stream endpoint: error paths only ────────────────────────
 
 
 @pytest.mark.asyncio
-async def test_stream_session_not_found():
+async def test_stream_requires_token():
+    """No token at all (neither query nor header) → 401, not 422.
+
+    The token is accepted from EITHER source (web query / mobile header); an
+    entirely unauthenticated stream request is Unauthorized, not Unprocessable.
+    """
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as async_client:
-        r = await async_client.get("/sessions/doesnotexist/ideas/stream")
+        r = await async_client.get("/sessions/whatever/ideas/stream")
+        assert r.status_code == 401
+
+
+def test_stream_rejects_bad_token(client, sample_session):
+    """A bogus token on a real session → 401."""
+    r = client.get(
+        f"/sessions/{sample_session['id']}/ideas/stream?token=not-a-real-token"
+    )
+    assert r.status_code == 401
+
+
+def test_stream_accepts_token_via_authorization_header(client, sample_session):
+    """Mobile/desktop send the token as an Authorization header (no ?token= query).
+
+    The endpoint must read the header too — otherwise FastAPI returns 422
+    (missing required query param) and live updates never open on non-web.
+    A bogus header token must reach resolve_principal → 401, NOT 422.
+    """
+    r = client.get(
+        f"/sessions/{sample_session['id']}/ideas/stream",
+        headers={"Authorization": "Bearer not-a-real-token"},
+    )
+    assert r.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_stream_session_not_found(client, participant_headers):
+    # Authenticated (valid token for another session) but the target session
+    # doesn't exist → 404.
+    token = participant_headers["Authorization"].split(" ", 1)[1]
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as async_client:
+        r = await async_client.get(
+            "/sessions/doesnotexist/ideas/stream", params={"token": token}
+        )
         assert r.status_code == 404

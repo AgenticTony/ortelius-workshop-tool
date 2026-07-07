@@ -11,9 +11,24 @@ import hashlib
 import secrets
 
 
+def generate_token() -> str:
+    """Generate an opaque bearer token (URL-safe, ~43 chars).
+
+    Used for both facilitator and participant tokens — both are random,
+    unstructured, verified by hash. Demo-grade auth; full SSO/IdP is a
+    production concern (see production-readiness.md).
+    """
+    return secrets.token_urlsafe(32)
+
+
 def generate_facilitator_token() -> str:
     """Generate a new opaque facilitator token (URL-safe, ~43 chars)."""
-    return secrets.token_urlsafe(32)
+    return generate_token()
+
+
+def generate_participant_token() -> str:
+    """Generate a new opaque participant token (issued once at join)."""
+    return generate_token()
 
 
 def hash_token(token: str) -> str:
