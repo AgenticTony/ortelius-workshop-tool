@@ -39,3 +39,13 @@ backend/generated_reports/
 # Locally generated test PDFs (manual PDF-generation scratch output)
 backend/test_*report.pdf
 backend/test_db_report.pdf
+
+# Machine-specific Docker override (port remap for local dev)
+docker-compose.override.yml
+
+# Debug screenshots + Playwright MCP artifacts (local-only)
+*.playwright-mcp/
+current-home*.png
+redesign*.png
+release-home*.png
+final-home-check.png

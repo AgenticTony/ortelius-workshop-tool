@@ -38,7 +38,7 @@ services:
       # Default origins cover the Flutter web dev server and LAN testing
       # (so a phone on the same WiFi can reach the API). Override via
       # .env/CORS_ORIGINS for production.
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:54687,http://127.0.0.1:54687,http://192.168.50.254:7355,http://192.168.50.254:8000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:5555,http://localhost:5556,http://127.0.0.1:5555,http://localhost:54687,http://127.0.0.1:54687,http://192.168.50.254:7355,http://192.168.50.254:8000}
     ports:
       - "8000:8000"
     # Container-level healthcheck via the app's /health endpoint.

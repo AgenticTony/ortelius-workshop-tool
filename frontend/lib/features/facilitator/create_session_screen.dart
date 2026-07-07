@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/layout.dart';
+import '../../widgets/screen_scaffold.dart';
 import 'facilitator_session_controller.dart';
 
 // ignore_for_file: deprecated_member_use
@@ -76,66 +78,70 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(facilitatorSessionProvider);
     final theme = Theme.of(context);
-    return Scaffold(
+    return ScrollableScaffold(
+      maxWidth: Layout.contentMaxWidth,
       appBar: AppBar(title: const Text('New workshop')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              padding: const EdgeInsets.all(24),
-              shrinkWrap: true,
-              children: [
-                Text('Set up your workshop',
-                    style: theme.textTheme.headlineSmall),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _topicController,
-                  decoration: const InputDecoration(
-                    labelText: 'Workshop topic',
-                    hintText: 'e.g. Q3 strategy review',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.subject),
-                  ),
-                  textInputAction: TextInputAction.next,
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Enter a topic' : null,
-                ),
-                const SizedBox(height: 20),
-                Text('Framework', style: theme.textTheme.titleSmall),
-                const SizedBox(height: 8),
-                ..._frameworks.map((f) {
-                  final (id, label, desc) = f;
-                  return RadioListTile<String>(
-                    value: id,
-                    groupValue: _framework,
-                    onChanged: (v) => setState(() => _framework = v!),
-                    title: Text(label),
-                    subtitle: Text(desc),
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                  );
-                }),
-                if (_framework == 'custom') ...[
-                  const SizedBox(height: 12),
-                  _customCategoriesEditor(theme),
-                ],
-                const SizedBox(height: 28),
-                FilledButton.icon(
-                  onPressed: state.creating ? null : _submit,
-                  icon: state.creating
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.rocket_launch_outlined),
-                  label: Text(state.creating ? 'Creating…' : 'Create session'),
-                ),
-              ],
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            Text('Set up your workshop', style: theme.textTheme.headlineSmall),
+            const SizedBox(height: 6),
+            Text(
+              'Pick a topic and a framework for the AI to cluster ideas into.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
+            const SizedBox(height: 24),
+            TextFormField(
+              controller: _topicController,
+              decoration: const InputDecoration(
+                labelText: 'Workshop topic',
+                hintText: 'e.g. Q3 strategy review',
+                prefixIcon: Icon(Icons.subject_rounded),
+              ),
+              textInputAction: TextInputAction.next,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Enter a topic' : null,
+            ),
+            const SizedBox(height: 24),
+            Text('Framework', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            ..._frameworks.map((f) {
+              final (id, label, desc) = f;
+              return RadioListTile<String>(
+                value: id,
+                groupValue: _framework,
+                onChanged: (v) => setState(() => _framework = v!),
+                title: Text(label),
+                subtitle: Text(desc),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                dense: true,
+              );
+            }),
+            if (_framework == 'custom') ...[
+              const SizedBox(height: 12),
+              _customCategoriesEditor(theme),
+            ],
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: state.creating ? null : _submit,
+                icon: state.creating
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.rocket_launch_outlined),
+                label: Text(state.creating ? 'Creating…' : 'Create session'),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -152,7 +158,7 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
             TextButton.icon(
               onPressed: () => setState(
                   () => _categoryControllers.add(TextEditingController())),
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add_rounded),
               label: const Text('Add'),
             ),
           ],
@@ -170,7 +176,6 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
                     controller: c,
                     decoration: InputDecoration(
                       labelText: 'Category ${i + 1}',
-                      border: const OutlineInputBorder(),
                     ),
                     validator: (v) {
                       // Validate non-empty only for the first two; extras optional.
@@ -184,7 +189,7 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
                 if (canRemove)
                   IconButton(
                     tooltip: 'Remove',
-                    icon: const Icon(Icons.remove_circle_outline),
+                    icon: const Icon(Icons.remove_circle_outline_rounded),
                     onPressed: () => setState(() {
                       c.dispose();
                       _categoryControllers.removeAt(i);
@@ -197,7 +202,9 @@ class _CreateSessionScreenState extends ConsumerState<CreateSessionScreen> {
         Text(
           'Participants\' ideas will be clustered into these. The AI uses the '
           'category names to understand intent.',
-          style: theme.textTheme.bodySmall,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
       ],
     );

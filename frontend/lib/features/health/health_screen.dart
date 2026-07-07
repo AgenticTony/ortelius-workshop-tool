@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/app_providers.dart';
-import '../../core/theme/layout.dart';
 import '../../core/config/app_config.dart';
+import '../../core/theme/app_colors.dart';
+import '../../widgets/screen_scaffold.dart';
 
 /// Connection-check screen. The Milestone 2 demo target: proves the app
 /// builds, loads config, and can reach the backend /health endpoint.
@@ -55,49 +56,57 @@ class _HealthScreenState extends ConsumerState<HealthScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Workshop Tool — Connection')),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: Layout.contentMaxWidth),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _statusIcon(),
+      appBar: AppBar(title: const Text('Backend connection')),
+      body: SafeArea(
+        child: ScreenScaffold(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _statusIcon(),
+              const SizedBox(height: 18),
+              Text(
+                _statusText(),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                AppConfig.apiBaseUrl,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              if (_result != null) ...[
                 const SizedBox(height: 16),
-                Text(
-                  _statusText(),
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Backend: ${AppConfig.apiBaseUrl}',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall,
-                ),
-                if (_result != null) ...[
-                  const SizedBox(height: 12),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(_result.toString()),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Text(
+                      _result.toString(),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontFamily: 'monospace',
+                      ),
                     ),
                   ),
-                ],
-                if (_error != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    '$_error',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.error),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                FilledButton.icon(
+                ),
+              ],
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  '$_error',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.error),
+                ),
+              ],
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
                   onPressed: _loading ? null : _check,
                   icon: _loading
                       ? const SizedBox(
@@ -105,11 +114,11 @@ class _HealthScreenState extends ConsumerState<HealthScreen> {
                           height: 16,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.refresh),
+                      : const Icon(Icons.refresh_rounded),
                   label: Text(_loading ? 'Checking…' : 'Re-check'),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -117,20 +126,48 @@ class _HealthScreenState extends ConsumerState<HealthScreen> {
   }
 
   Widget _statusIcon() {
+    final size = 64.0;
     if (_loading) {
-      return const SizedBox(
-        width: 48,
-        height: 48,
-        child: CircularProgressIndicator(),
+      return SizedBox(
+        width: size,
+        height: size,
+        child: const CircularProgressIndicator(),
       );
     }
     if (_error != null) {
-      return const Icon(Icons.error_outline, size: 48, color: Colors.red);
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: AppColors.accent.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(Icons.error_outline_rounded,
+            size: 32, color: Theme.of(context).colorScheme.error),
+      );
     }
     if (_result != null) {
-      return const Icon(Icons.check_circle, size: 48, color: Colors.green);
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: const Color(0xFF10B981).withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.check_circle_rounded,
+            size: 32, color: Color(0xFF10B981)),
+      );
     }
-    return const Icon(Icons.hourglass_empty, size: 48, color: Colors.grey);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppColors.textSecondary.withValues(alpha: 0.12),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(Icons.hourglass_empty_rounded,
+          size: 32, color: AppColors.textSecondary),
+    );
   }
 
   String _statusText() {
