@@ -36,14 +36,17 @@ class AppTheme {
         ),
       ),
 
-      // ── Cards: flat, hairline-bordered. No shadow — structure via edges ──
+      // ── Cards: glass — translucent gradient fill + light edge ────────────
+      // Simulated glass (no backdrop blur) at the theme level so every Card
+      // gets depth by default. Real-blur glass is applied via GlassCard where
+      // a card sits over content (hero, access code). See widgets/glass_card.
       cardTheme: CardThemeData(
         elevation: 0,
         color: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-          side: const BorderSide(color: AppColors.border),
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: AppColors.border, width: 1),
         ),
         margin: EdgeInsets.zero,
       ),

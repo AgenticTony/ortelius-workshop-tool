@@ -7,6 +7,7 @@ import '../../core/theme/layout.dart';
 import '../../models/models.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
+import '../../widgets/glass_card.dart';
 import '../../widgets/live_indicator.dart';
 import '../../widgets/sticky_note.dart';
 import 'participant_session_controller.dart';
@@ -129,15 +130,12 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: Layout.dashboardMaxWidth),
-          child: Container(
+          child: GlassCard(
+            blur: true,
+            radius: 14,
             margin: const EdgeInsets.fromLTRB(
                 Layout.padding, 4, Layout.padding, 8),
             padding: const EdgeInsets.fromLTRB(12, 6, 6, 6),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.colorScheme.outline),
-            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [

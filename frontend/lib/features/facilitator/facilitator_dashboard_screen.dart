@@ -10,6 +10,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/layout.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
+import '../../widgets/glass_card.dart';
 import '../../widgets/live_indicator.dart';
 import '../../widgets/section_heading.dart';
 import '../../widgets/sticky_note.dart';
@@ -161,10 +162,9 @@ class _AccessCodeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+    return GlassCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -237,7 +237,6 @@ class _AccessCodeCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -253,10 +252,9 @@ class _StatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Expanded(
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
-          child: Column(
+      child: GlassCard(
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
+        child: Column(
             children: [
               Icon(icon, size: 24, color: AppColors.accent),
               const SizedBox(height: 8),
@@ -275,7 +273,6 @@ class _StatTile extends StatelessWidget {
                 ),
               ),
             ],
-          ),
         ),
       ),
     );

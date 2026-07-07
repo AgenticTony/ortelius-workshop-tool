@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../widgets/glass_card.dart';
 import '../../widgets/screen_scaffold.dart';
 
 /// App entry screen: pick facilitator or participant.
@@ -23,14 +24,11 @@ class HomeScreen extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // ── Hero: the app's thesis ──────────────────────────────
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
+              // ── Hero: glass tile holding the app mark ───────────────
+              GlassCard(
+                blur: true,
+                radius: 16,
+                padding: const EdgeInsets.all(16),
                 child: const Icon(
                   Icons.forum_rounded,
                   size: 32,
