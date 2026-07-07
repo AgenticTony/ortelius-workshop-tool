@@ -6,6 +6,7 @@ import '../../core/theme/layout.dart';
 import '../../models/models.dart';
 import '../../services/pdf_download.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/glass_card.dart';
 import '../../widgets/section_heading.dart';
 import 'facilitator_session_controller.dart';
 
@@ -170,10 +171,9 @@ class _CategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final title = entry.key[0].toUpperCase() + entry.key.substring(1);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -232,7 +232,6 @@ class _CategoryCard extends StatelessWidget {
               ),
           ],
         ),
-      ),
     );
   }
 }
