@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/layout.dart';
 import '../../models/models.dart';
 import '../../services/pdf_download.dart';
 import '../../widgets/empty_state.dart';
+import '../../widgets/section_heading.dart';
 import 'facilitator_session_controller.dart';
 
 /// Renders the AI analysis result and offers a PDF download. Reached from the
-/// dashboard once analysis has been run.
+/// dashboard once analysis has been run. Structured like a real report:
+/// clustered categories first, then themes / decisions / questions / steps.
 class ReportScreen extends ConsumerWidget {
   const ReportScreen({super.key});
 
@@ -18,14 +22,13 @@ class ReportScreen extends ConsumerWidget {
     if (analysis == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Analysis')),
-        body: EmptyState(
+        body: const EmptyState(
           icon: Icons.auto_awesome_outlined,
           message: 'No analysis yet',
           detail: 'Run AI analysis from the dashboard first.',
         ),
       );
     }
-    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text('${analysis.framework.toUpperCase()} analysis'),
@@ -37,61 +40,71 @@ class ReportScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // ── Category grid ────────────────────────────────────
-          Text('Clustered ideas', style: theme.textTheme.titleMedium),
-          const SizedBox(height: 8),
-          _CategoryGrid(analysis: analysis),
-          const SizedBox(height: 24),
-          // ── Themes ───────────────────────────────────────────
-          if (analysis.keyThemes.isNotEmpty) ...[
-            Text('Key themes', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            ...analysis.keyThemes.map((t) => _Bullet(text: t, icon: Icons.star_outline)),
-            const SizedBox(height: 16),
-          ],
-          // ── Decisions ────────────────────────────────────────
-          if (analysis.decisionsMade.isNotEmpty) ...[
-            Text('Decisions made', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            ...analysis.decisionsMade
-                .map((t) => _Bullet(text: t, icon: Icons.check_circle_outline)),
-            const SizedBox(height: 16),
-          ],
-          // ── Questions ────────────────────────────────────────
-          if (analysis.openQuestions.isNotEmpty) ...[
-            Text('Open questions', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            ...analysis.openQuestions
-                .map((t) => _Bullet(text: t, icon: Icons.help_outline)),
-            const SizedBox(height: 16),
-          ],
-          // ── Next steps ───────────────────────────────────────
-          if (analysis.recommendedNextSteps.isNotEmpty) ...[
-            Text('Recommended next steps', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            ...analysis.recommendedNextSteps
-                .map((t) => _Bullet(text: t, icon: Icons.arrow_forward)),
-            const SizedBox(height: 24),
-          ],
-          // ── Download button (mobile-friendly) ────────────────
-          FilledButton.icon(
-            onPressed: () => _downloadPdf(context, ref),
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            label: const Text('Download PDF report'),
-          ),
-          if (state.pdfBytes != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                'PDF ready (${state.pdfBytes!.length ~/ 1024} KB).',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: Layout.dashboardMaxWidth),
+          child: ListView(
+            padding: const EdgeInsets.symmetric(
+                horizontal: Layout.padding, vertical: 24),
+            children: [
+              // ── Category grid ────────────────────────────────────
+              const SectionHeading(eyebrow: 'Clusters', title: 'Clustered ideas'),
+              const SizedBox(height: 12),
+              _CategoryGrid(analysis: analysis),
+              const SizedBox(height: 32),
+
+              if (analysis.keyThemes.isNotEmpty)
+                _InsightBlock(
+                  eyebrow: 'Synthesis',
+                  title: 'Key themes',
+                  items: analysis.keyThemes,
+                  icon: Icons.star_rounded,
+                  color: AppColors.vote,
+                ),
+              if (analysis.decisionsMade.isNotEmpty)
+                _InsightBlock(
+                  title: 'Decisions made',
+                  items: analysis.decisionsMade,
+                  icon: Icons.check_circle_rounded,
+                  color: AppColors.live,
+                ),
+              if (analysis.openQuestions.isNotEmpty)
+                _InsightBlock(
+                  title: 'Open questions',
+                  items: analysis.openQuestions,
+                  icon: Icons.help_rounded,
+                  color: AppColors.textSecondary,
+                ),
+              if (analysis.recommendedNextSteps.isNotEmpty)
+                _InsightBlock(
+                  title: 'Recommended next steps',
+                  items: analysis.recommendedNextSteps,
+                  icon: Icons.arrow_forward_rounded,
+                  color: AppColors.accent,
+                ),
+
+              // ── Download button ───────────────────────────────────
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _downloadPdf(context, ref),
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text('Download PDF report'),
+                ),
               ),
-            ),
-        ],
+              if (state.pdfBytes != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'PDF ready (${state.pdfBytes!.length ~/ 1024} KB).',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -125,6 +138,7 @@ class ReportScreen extends ConsumerWidget {
 }
 
 /// A responsive grid of category cards, each listing the clustered ideas.
+/// Uses Wrap for robust layout (replaces the hand-rolled Row math).
 class _CategoryGrid extends StatelessWidget {
   const _CategoryGrid({required this.analysis});
   final AnalysisResult analysis;
@@ -133,29 +147,16 @@ class _CategoryGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final entries = analysis.categories.entries.toList();
     return LayoutBuilder(builder: (context, constraints) {
-      // 2 columns when there's room, else 1.
-      final cols = constraints.maxWidth > 600 ? 2 : 1;
-      final rows = (entries.length / cols).ceil();
-      return Column(
-        children: [
-          for (int r = 0; r < rows; r++)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (int c = 0; c < cols; c++) ...[
-                    if (c > 0) const SizedBox(width: 8),
-                    Expanded(
-                      child: (r * cols + c) < entries.length
-                          ? _CategoryCard(entry: entries[r * cols + c])
-                          : const SizedBox(),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-        ],
+      final wide = constraints.maxWidth > 560;
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: entries.map((e) {
+          return SizedBox(
+            width: wide ? (constraints.maxWidth - 12) / 2 : double.infinity,
+            child: _CategoryCard(entry: e),
+          );
+        }).toList(),
       );
     });
   }
@@ -171,25 +172,60 @@ class _CategoryCard extends StatelessWidget {
     final title = entry.key[0].toUpperCase() + entry.key.substring(1);
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title,
-                style: theme.textTheme.titleSmall
-                    ?.copyWith(color: theme.colorScheme.primary)),
-            const SizedBox(height: 8),
+            Row(
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: AppColors.accent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
             if (entry.value.isEmpty)
-              Text('No items', style: theme.textTheme.bodySmall)
+              Text('No items',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ))
             else
               ...entry.value.map(
                 (idea) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.only(bottom: 6),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('•  '),
-                      Expanded(child: Text(idea.summary)),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 7),
+                        child: Container(
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          idea.summary,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -201,21 +237,60 @@ class _CategoryCard extends StatelessWidget {
   }
 }
 
-class _Bullet extends StatelessWidget {
-  const _Bullet({required this.text, required this.icon});
-  final String text;
+/// A titled list of insight bullets with an accent icon.
+class _InsightBlock extends StatelessWidget {
+  const _InsightBlock({
+    this.eyebrow,
+    required this.title,
+    required this.items,
+    required this.icon,
+    required this.color,
+  });
+
+  final String? eyebrow;
+  final String title;
+  final List<String> items;
   final IconData icon;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
+      padding: const EdgeInsets.only(bottom: 28),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20),
-          const SizedBox(width: 8),
-          Expanded(child: Text(text)),
+          SectionHeading(eyebrow: eyebrow, title: title),
+          const SizedBox(height: 12),
+          ...items.map(
+            (t) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 2),
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, size: 14, color: color),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      t,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

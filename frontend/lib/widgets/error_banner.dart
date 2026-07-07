@@ -19,33 +19,44 @@ class ErrorBanner extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.errorContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.error.withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         children: [
-          Icon(Icons.error_outline, color: theme.colorScheme.onErrorContainer),
-          const SizedBox(width: 8),
+          Icon(Icons.error_outline_rounded,
+              size: 20, color: theme.colorScheme.onErrorContainer),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: TextStyle(color: theme.colorScheme.onErrorContainer),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onErrorContainer,
+              ),
             ),
           ),
           if (onRetry != null)
             TextButton(
               onPressed: onRetry,
-              child: Text(
-                'Retry',
-                style: TextStyle(color: theme.colorScheme.onErrorContainer),
+              style: TextButton.styleFrom(
+                foregroundColor: theme.colorScheme.onErrorContainer,
+                minimumSize: const Size(0, 36),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               ),
+              child: const Text('Retry'),
             ),
           if (onDismiss != null)
             IconButton(
               tooltip: 'Dismiss',
-              icon: Icon(Icons.close, size: 18,
+              visualDensity: VisualDensity.compact,
+              iconSize: 18,
+              icon: Icon(Icons.close_rounded,
                   color: theme.colorScheme.onErrorContainer),
               onPressed: onDismiss,
             ),

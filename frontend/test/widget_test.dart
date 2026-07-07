@@ -22,7 +22,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.textContaining('Workshop Tool'), findsOneWidget);
+    expect(find.textContaining('Backend connection'), findsOneWidget);
     expect(find.text('Ready'), findsOneWidget);
   });
 }

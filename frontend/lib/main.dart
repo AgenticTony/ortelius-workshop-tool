@@ -20,7 +20,7 @@ class WorkshopToolApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Workshop Tool',
-      theme: appTheme(),
+      theme: AppTheme.build(),
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
     );

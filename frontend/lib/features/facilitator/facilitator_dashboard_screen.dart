@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/config/app_config.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/layout.dart';
 import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
+import '../../widgets/live_indicator.dart';
+import '../../widgets/section_heading.dart';
+import '../../widgets/sticky_note.dart';
 import 'facilitator_session_controller.dart';
 
 /// Facilitator dashboard: the live workshop control center. Shows the access
 /// code + QR for participants to join, live participant/idea counts, the live
-/// idea feed, and the trigger to run AI analysis.
+/// idea feed (as sticky notes), and the trigger to run AI analysis.
 class FacilitatorDashboardScreen extends ConsumerWidget {
   const FacilitatorDashboardScreen({super.key});
 
@@ -25,10 +32,7 @@ class FacilitatorDashboardScreen extends ConsumerWidget {
     }
     final theme = Theme.of(context);
 
-    // The QR encodes a join URL participants can scan with their phone. On web
-    // this is the app's own origin (the LAN IP the phone can actually reach),
-    // with the access code as a query param the join screen reads on launch.
-    // Falls back to the API base URL for non-web (simulator/desktop dev).
+    // The QR encodes a join URL participants can scan with their phone.
     final origin = AppConfig.webOrigin;
     final base = (origin != null && origin.isNotEmpty)
         ? origin
@@ -40,121 +44,95 @@ class FacilitatorDashboardScreen extends ConsumerWidget {
         title: Text(session.topic),
         actions: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Center(child: _LiveDot(connected: state.connected)),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Center(child: LiveIndicator(connected: state.connected)),
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          if (state.error != null)
-            ErrorBanner(
-              message: state.error!,
-              onDismiss: () => ref
-                  .read(facilitatorSessionProvider.notifier)
-                  .dismissError(),
-            ),
-          // ── Access code + QR ──────────────────────────────────
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: Layout.dashboardMaxWidth),
+          child: ListView(
+            padding: const EdgeInsets.symmetric(
+                horizontal: Layout.padding, vertical: 20),
+            children: [
+              if (state.error != null)
+                ErrorBanner(
+                  message: state.error!,
+                  onDismiss: () => ref
+                      .read(facilitatorSessionProvider.notifier)
+                      .dismissError(),
+                ),
+
+              // ── Access code + QR ────────────────────────────────────
+              _AccessCodeCard(accessCode: session.accessCode, joinUrl: joinUrl),
+              const SizedBox(height: Layout.sectionGap),
+
+              // ── Live counts ────────────────────────────────────────
+              Row(
                 children: [
-                  Text('Participants join with this code',
-                      style: theme.textTheme.labelLarge),
-                  const SizedBox(height: 4),
-                  SelectableText(
-                    session.accessCode,
-                    style: theme.textTheme.displaySmall
-                        ?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 4),
-                    semanticsLabel:
-                        'Access code: ${session.accessCode.split('').join(' ')}',
+                  _StatTile(
+                    icon: Icons.group_rounded,
+                    label: 'Participants',
+                    value: state.participantCount,
                   ),
-                  const SizedBox(height: 16),
-                  Semantics(
-                    label: 'QR code for participants to join',
-                    child: QrImageView(
-                      data: joinUrl,
-                      version: QrVersions.auto,
-                      size: 200,
-                      backgroundColor: Colors.white,
-                    ),
+                  const SizedBox(width: 12),
+                  _StatTile(
+                    icon: Icons.lightbulb_rounded,
+                    label: 'Ideas',
+                    value: state.ideas.length,
                   ),
-                  const SizedBox(height: 8),
-                  Text('or scan the QR code',
-                      style: theme.textTheme.bodySmall),
                 ],
               ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          // ── Live counts ──────────────────────────────────────
-          Row(
-            children: [
-              _StatCard(
-                icon: Icons.group_outlined,
-                label: 'Participants',
-                value: '${state.participantCount}',
+              const SizedBox(height: 24),
+
+              // ── Live idea feed ──────────────────────────────────────
+              SectionHeading(
+                eyebrow: 'Live',
+                title: state.ideas.isEmpty
+                    ? 'Waiting for ideas'
+                    : '${state.ideas.length} idea${state.ideas.length == 1 ? '' : 's'}',
               ),
-              const SizedBox(width: 12),
-              _StatCard(
-                icon: Icons.lightbulb_outline,
-                label: 'Ideas',
-                value: '${state.ideas.length}',
-              ),
+              const SizedBox(height: 12),
+              if (state.ideas.isEmpty)
+                const EmptyState(
+                  icon: Icons.lightbulb_outline_rounded,
+                  message: 'No ideas yet',
+                  detail: 'Share the access code or QR to invite participants.',
+                )
+              else
+                ...state.ideas.map((idea) => StickyNote(
+                      idea: idea,
+                      isMine: false,
+                      onVote: () {},
+                    )),
+              const SizedBox(height: 28),
+
+              // ── Run analysis ────────────────────────────────────────
+              _AnalysisControl(state: state, onRun: () => _runAnalysis(context, ref)),
+              if (state.ideas.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Add at least one idea before running analysis.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              if (state.analysis != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.go('/facilitate/report'),
+                    icon: const Icon(Icons.analytics_outlined),
+                    label: const Text('View analysis & download PDF'),
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 16),
-          // ── Live idea feed ───────────────────────────────────
-          Text('Live ideas', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 8),
-          if (state.ideas.isEmpty)
-            EmptyState(
-              icon: Icons.lightbulb_outline,
-              message: 'Waiting for the first idea',
-              detail: 'Share the access code or QR to invite participants.',
-            )
-          else
-            ...state.ideas.map((idea) => ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.circle, size: 8),
-                  title: Text(idea.content),
-                  subtitle: Text(
-                      '${idea.participantName} • ${idea.votes} vote${idea.votes == 1 ? '' : 's'}'),
-                )),
-          const SizedBox(height: 24),
-          // ── Run analysis ─────────────────────────────────────
-          FilledButton.icon(
-            onPressed: (state.analysing || state.ideas.isEmpty)
-                ? null
-                : () => _runAnalysis(context, ref),
-            icon: state.analysing
-                ? const SizedBox(
-                    width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.auto_awesome_outlined),
-            label: Text(state.analysing ? 'Analysing…' : 'Run AI analysis'),
-          ),
-          if (state.ideas.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                'Add at least one idea before running analysis.',
-                style: theme.textTheme.bodySmall,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          if (state.analysis != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: OutlinedButton.icon(
-                onPressed: () => context.go('/facilitate/report'),
-                icon: const Icon(Icons.analytics_outlined),
-                label: const Text('View analysis & download PDF'),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -174,12 +152,102 @@ class FacilitatorDashboardScreen extends ConsumerWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard(
-      {required this.icon, required this.label, required this.value});
+/// The access code presented large + mono, with a copy button and the QR.
+class _AccessCodeCard extends StatelessWidget {
+  const _AccessCodeCard({required this.accessCode, required this.joinUrl});
+  final String accessCode;
+  final String joinUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'JOIN CODE',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      SelectableText(
+                        accessCode,
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 6,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                        semanticsLabel:
+                            'Access code: ${accessCode.split('').join(' ')}',
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton.outlined(
+                  tooltip: 'Copy code',
+                  icon: const Icon(Icons.copy_rounded, size: 20),
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: accessCode));
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Code copied')),
+                    );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 16),
+            Semantics(
+              label: 'QR code for participants to join',
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: QrImageView(
+                  data: joinUrl,
+                  version: QrVersions.auto,
+                  size: 180,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'or scan the QR to join',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A stat tile — participants / ideas. Quiet, numeric, not stretched.
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.icon, required this.label, required this.value});
   final IconData icon;
   final String label;
-  final String value;
+  final int value;
 
   @override
   Widget build(BuildContext context) {
@@ -187,15 +255,25 @@ class _StatCard extends StatelessWidget {
     return Expanded(
       child: Card(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
           child: Column(
             children: [
-              Icon(icon, size: 28, color: theme.colorScheme.primary),
+              Icon(icon, size: 24, color: AppColors.accent),
               const SizedBox(height: 8),
-              Text(value,
-                  style: theme.textTheme.headlineMedium
-                      ?.copyWith(fontWeight: FontWeight.bold)),
-              Text(label, style: theme.textTheme.bodySmall),
+              Text(
+                '$value',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
             ],
           ),
         ),
@@ -204,21 +282,27 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _LiveDot extends StatelessWidget {
-  const _LiveDot({required this.connected});
-  final bool connected;
+/// The run-analysis button, with a loading state.
+class _AnalysisControl extends StatelessWidget {
+  const _AnalysisControl({required this.state, required this.onRun});
+  final FacilitatorSessionState state;
+  final VoidCallback onRun;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.fiber_manual_record,
-            size: 12, color: connected ? Colors.green : Colors.grey),
-        const SizedBox(width: 4),
-        Text(connected ? 'Live' : 'Connecting…',
-            style: Theme.of(context).textTheme.labelSmall),
-      ],
+    final disabled = state.analysing || state.ideas.isEmpty;
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: disabled ? null : onRun,
+        icon: state.analysing
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2))
+            : const Icon(Icons.auto_awesome_rounded),
+        label: Text(state.analysing ? 'Analysing…' : 'Run AI analysis'),
+      ),
     );
   }
 }
