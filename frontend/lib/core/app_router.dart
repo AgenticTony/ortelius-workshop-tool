@@ -8,33 +8,43 @@ import '../features/participant/workshop_screen.dart';
 import '../features/facilitator/create_session_screen.dart';
 import '../features/facilitator/facilitator_dashboard_screen.dart';
 import '../features/facilitator/report_screen.dart';
+import '../widgets/page_slide_transition.dart';
 
 /// App routing. Entry is the role-picker home; from there the facilitator
 /// path is /facilitate/new -> /facilitate -> /facilitate/report, and the
 /// participant path is /join -> /workshop.
+///
+/// Every route uses [pageSlide] so navigation feels alive instead of cutting
+/// hard. Reduced-motion collapses it to a plain fade.
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
     GoRoute(
       path: '/',
       name: 'home',
-      builder: (context, state) => const HomeScreen(),
+      pageBuilder: (context, state) =>
+          pageSlide(child: const HomeScreen(), state: state, name: 'home'),
     ),
     // ── Facilitator ──────────────────────────────────────────
     GoRoute(
       path: '/facilitate/new',
       name: 'facilitateNew',
-      builder: (context, state) => const CreateSessionScreen(),
+      pageBuilder: (context, state) => pageSlide(
+          child: const CreateSessionScreen(), state: state, name: 'facilitateNew'),
     ),
     GoRoute(
       path: '/facilitate',
       name: 'facilitate',
-      builder: (context, state) => const FacilitatorDashboardScreen(),
+      pageBuilder: (context, state) => pageSlide(
+          child: const FacilitatorDashboardScreen(),
+          state: state,
+          name: 'facilitate'),
     ),
     GoRoute(
       path: '/facilitate/report',
       name: 'facilitateReport',
-      builder: (context, state) => const ReportScreen(),
+      pageBuilder: (context, state) => pageSlide(
+          child: const ReportScreen(), state: state, name: 'facilitateReport'),
     ),
     // ── Participant ──────────────────────────────────────────
     // The QR code encodes the join code as a query param inside the URL fragment
@@ -45,20 +55,24 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/join',
       name: 'join',
-      builder: (context, state) => JoinScreen(
-        initialCode: state.uri.queryParameters['code'],
+      pageBuilder: (context, state) => pageSlide(
+        child: JoinScreen(initialCode: state.uri.queryParameters['code']),
+        state: state,
+        name: 'join',
       ),
     ),
     GoRoute(
       path: '/workshop',
       name: 'workshop',
-      builder: (context, state) => const WorkshopScreen(),
+      pageBuilder: (context, state) => pageSlide(
+          child: const WorkshopScreen(), state: state, name: 'workshop'),
     ),
     // ── Dev ──────────────────────────────────────────────────
     GoRoute(
       path: '/health',
       name: 'health',
-      builder: (context, state) => const HealthScreen(),
+      pageBuilder: (context, state) => pageSlide(
+          child: const HealthScreen(), state: state, name: 'health'),
     ),
   ],
   errorBuilder: (context, state) => Scaffold(

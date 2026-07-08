@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_colors.dart';
+
 /// A compact live-connection indicator: a pulsing green dot + label.
 ///
 /// Replaces the `_LiveDot` that was duplicated in both the dashboard and the
@@ -54,9 +56,9 @@ class _LiveIndicatorState extends State<LiveIndicator>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
-    // Green is the universal "connected/healthy" signal — using amber here
-    // made the live dot read as red/orange, which signals an error.
-    const liveColor = Color(0xFF10B981); // emerald green
+    // Green is the universal "connected/healthy" signal. On the light theme we
+    // use a deeper green so it holds contrast on a bright projector.
+    const liveColor = AppColors.live;
     final color = widget.connected ? liveColor : theme.colorScheme.outline;
     final dot = Container(
       width: 8,

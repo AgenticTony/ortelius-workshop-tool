@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 
-/// Workshop Tool theme — "Dark, technical, corporate."
+/// Workshop Tool theme — light, corporate, high-contrast.
 ///
-/// Dark-only (no themeMode flip — see main.dart). Smaller corner radii than
-/// a consumer app (8–10px, not 16–24) read as precise/instrument-like. Hairline
-/// borders define structure instead of shadows. One accent, used with restraint.
+/// Projector-first: built for a facilitator displaying this on a shared
+/// screen in a lit room, where back-of-room legibility is the job. Depth via
+/// soft shadows + 2px borders (not glassmorphism — glass washes out on a
+/// bright projector). Larger radii and taller controls for touch + distance.
 class AppTheme {
   AppTheme._();
 
@@ -17,128 +18,108 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       colorScheme: colors,
       textTheme: text,
       scaffoldBackgroundColor: AppColors.canvas,
 
-      // ── App bar: flush with the canvas, hairline divider when scrolled ──
+      // ── App bar: solid surface, 2px divider ───────────────────────────
       appBarTheme: AppBarTheme(
         centerTitle: false,
-        backgroundColor: AppColors.canvas,
+        backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
-        titleTextStyle: text.titleLarge?.copyWith(color: AppColors.textPrimary),
+        titleTextStyle:
+            text.headlineMedium?.copyWith(color: AppColors.textPrimary),
         shape: const Border(
-          bottom: BorderSide(color: AppColors.border, width: 1),
-        ),
+            bottom: BorderSide(color: AppColors.border, width: 2)),
       ),
 
-      // ── Cards: glass — translucent gradient fill + light edge ────────────
-      // Simulated glass (no backdrop blur) at the theme level so every Card
-      // gets depth by default. Real-blur glass is applied via GlassCard where
-      // a card sits over content (hero, access code). See widgets/glass_card.
+      // ── Cards: solid white, 2px border, soft shadow ───────────────────
       cardTheme: CardThemeData(
         elevation: 0,
         color: AppColors.surface,
         surfaceTintColor: Colors.transparent,
+        shadowColor: const Color(0x1A0B1524),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: AppColors.border, width: 1),
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.border, width: 2),
         ),
         margin: EdgeInsets.zero,
       ),
 
-      // ── Inputs: filled, subtle, focus ring in the accent ────────────────
+      // ── Inputs: filled, 2px border, accent focus ──────────────────────
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceRaised,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        fillColor: AppColors.surface,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.border, width: 1),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.border, width: 2),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.border, width: 1),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.border, width: 2),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.accent, width: 2.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.danger, width: 1),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.danger, width: 2),
         ),
-        labelStyle: text.bodyMedium?.copyWith(color: AppColors.textSecondary),
+        labelStyle:
+            text.bodyMedium?.copyWith(color: AppColors.textSecondary),
         hintStyle: text.bodyMedium?.copyWith(color: AppColors.textTertiary),
       ),
 
-      // ── Buttons: precise 8px radius, accent fill for primary ─────────────
+      // ── Buttons: 54px tall, 14px radius ───────────────────────────────
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(0, 46),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+          minimumSize: const Size(0, 54),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           backgroundColor: AppColors.accent,
           foregroundColor: Colors.white,
           textStyle: text.labelLarge,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           elevation: 0,
-        ),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          minimumSize: const Size(0, 46),
-          backgroundColor: AppColors.surfaceRaised,
-          foregroundColor: AppColors.textPrimary,
-          textStyle: text.labelLarge,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
-          side: const BorderSide(color: AppColors.border),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(0, 46),
-          foregroundColor: AppColors.textPrimary,
+          minimumSize: const Size(0, 54),
+          foregroundColor: AppColors.accent,
           textStyle: text.labelLarge,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          side: const BorderSide(color: AppColors.borderStrong),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          side: const BorderSide(color: AppColors.border, width: 2),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: AppColors.accent,
-          textStyle: text.labelLarge,
-        ),
+            foregroundColor: AppColors.accent, textStyle: text.labelLarge),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          side: const BorderSide(color: AppColors.border, width: 2),
         ),
       ),
 
-      // ── Misc ─────────────────────────────────────────────────────────────
-      dividerTheme: const DividerThemeData(
-        color: AppColors.border,
-        thickness: 1,
-        space: 1,
-      ),
+      // ── Misc ──────────────────────────────────────────────────────────
+      dividerTheme:
+          const DividerThemeData(color: AppColors.border, thickness: 2, space: 2),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.surfaceRaised,
-        contentTextStyle: text.bodyMedium?.copyWith(color: AppColors.textPrimary),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: const BorderSide(color: AppColors.border),
-        ),
+        backgroundColor: AppColors.navy,
+        contentTextStyle: text.bodyMedium?.copyWith(color: Colors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: AppColors.accent,
-        linearTrackColor: Color(0xFF1E2A4A),
-      ),
+      progressIndicatorTheme:
+          const ProgressIndicatorThemeData(color: AppColors.accent),
       radioTheme: RadioThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) return AppColors.accent;

@@ -30,24 +30,30 @@ class StickyNote extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(14, 13, 10, 11),
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
         decoration: BoxDecoration(
-          // Flat, structured — no tilt, no paper shadow. Reads as a precise
-          // data row, not a craft sticky-note. Yours gets a subtle accent tint.
+          // Solid white card. Yours gets a subtle teal tint to mark it.
           color: isMine ? AppColors.stickyNoteMine : AppColors.stickyNote,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           // A thicker left accent bar marks "yours" — quieter than a fill.
           border: Border(
             left: isMine
-                ? const BorderSide(color: AppColors.accent, width: 2.5)
-                : const BorderSide(color: AppColors.border, width: 1),
-            top: const BorderSide(color: AppColors.border, width: 1),
-            right: const BorderSide(color: AppColors.border, width: 1),
-            bottom: const BorderSide(color: AppColors.border, width: 1),
+                ? const BorderSide(color: AppColors.accent, width: 3)
+                : const BorderSide(color: AppColors.border, width: 2),
+            top: const BorderSide(color: AppColors.border, width: 2),
+            right: const BorderSide(color: AppColors.border, width: 2),
+            bottom: const BorderSide(color: AppColors.border, width: 2),
           ),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.shadowOuter,
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
