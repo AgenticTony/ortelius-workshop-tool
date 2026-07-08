@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -60,6 +61,12 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(participantSessionProvider);
     final session = state.session;
+    // Reflect the session topic in the browser tab title.
+    if (session != null) {
+      SystemChrome.setApplicationSwitcherDescription(
+        ApplicationSwitcherDescription(label: '${session.topic} · Workshop Tool'),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(session?.topic ?? 'Workshop'),
