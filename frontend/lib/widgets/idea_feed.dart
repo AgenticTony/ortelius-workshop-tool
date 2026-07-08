@@ -122,23 +122,24 @@ class _AnimatedIdea extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizeTransition(
-      sizeFactor: animation,
-      axisAlignment: -1.0,
-      child: FadeTransition(
-        opacity: animation,
-        child: SlideTransition(
-          position: animation.drive(
-            Tween<Offset>(
-              begin: const Offset(0, 0.12),
-              end: Offset.zero,
-            ).chain(CurveTween(curve: Curves.easeOutCubic)),
-          ),
-          child: StickyNote(
-            idea: idea,
-            isMine: isMine,
-            onVote: onVote,
-          ),
+    // Fade + slide-in. We avoid SizeTransition because its axisAlignment param
+    // was deprecated in Flutter 3.44 (replaced by `alignment`), and CI runs a
+    // newer stable than local — a plain FadeTransition + SlideTransition works
+    // on both and reads as a clean reveal (the card grows out of its top edge
+    // visually thanks to the upward slide).
+    return FadeTransition(
+      opacity: animation,
+      child: SlideTransition(
+        position: animation.drive(
+          Tween<Offset>(
+            begin: const Offset(0, 0.18),
+            end: Offset.zero,
+          ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        ),
+        child: StickyNote(
+          idea: idea,
+          isMine: isMine,
+          onVote: onVote,
         ),
       ),
     );
