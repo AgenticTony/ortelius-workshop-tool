@@ -13,6 +13,7 @@ import '../../widgets/error_banner.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/live_indicator.dart';
 import '../../widgets/section_heading.dart';
+import '../../widgets/staggered_reveal.dart';
 import '../../widgets/sticky_note.dart';
 import 'facilitator_session_controller.dart';
 
@@ -66,24 +67,31 @@ class FacilitatorDashboardScreen extends ConsumerWidget {
                 ),
 
               // ── Access code + QR ────────────────────────────────────
-              _AccessCodeCard(accessCode: session.accessCode, joinUrl: joinUrl),
+              StaggeredReveal(
+                index: 0,
+                child: _AccessCodeCard(
+                    accessCode: session.accessCode, joinUrl: joinUrl),
+              ),
               const SizedBox(height: Layout.sectionGap),
 
               // ── Live counts ────────────────────────────────────────
-              Row(
-                children: [
-                  _StatTile(
-                    icon: Icons.group_rounded,
-                    label: 'Participants',
-                    value: state.participantCount,
-                  ),
-                  const SizedBox(width: 12),
-                  _StatTile(
-                    icon: Icons.lightbulb_rounded,
-                    label: 'Ideas',
-                    value: state.ideas.length,
-                  ),
-                ],
+              StaggeredReveal(
+                index: 1,
+                child: Row(
+                  children: [
+                    _StatTile(
+                      icon: Icons.group_rounded,
+                      label: 'Participants',
+                      value: state.participantCount,
+                    ),
+                    const SizedBox(width: 12),
+                    _StatTile(
+                      icon: Icons.lightbulb_rounded,
+                      label: 'Ideas',
+                      value: state.ideas.length,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
 

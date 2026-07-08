@@ -92,4 +92,31 @@ abstract class AppColors {
 
   /// Your-own idea note — slightly warmer to mark it.
   static const stickyNoteMine = Color(0xFF24200C);
+
+  // ── Depth: layered shadows + glow (what makes glass feel real) ───────
+  // Layered shadows are the #1 thing separating "AI flat" from "real product."
+  // A soft outer shadow lifts the card off the canvas; a tight inner-top
+  // shadow gives the recessed-glass read. Brand-tinted glow marks the accent.
+
+  /// Outer drop shadow — soft, large-radius, slate-tinted (NOT pure black,
+  /// which looks harsh). Lifts cards off the canvas.
+  static const shadowOuter = Color(0x33000000); // 20% black
+
+  /// Stronger outer shadow for elevated/hovered cards.
+  static const shadowOuterStrong = Color(0x55000000); // 33% black
+
+  /// Inner-top highlight — the bright edge of light hitting glass. Drawn as
+  /// a hairline lighter than the surface on the top border.
+  static const glassHighlight = Color(0x33FFFFFF); // 20% white
+
+  /// Accent glow — the indigo halo behind primary actions / the live dot.
+  /// Drawn with the accent at low alpha so it reads as ambient light, not paint.
+  static const accentGlow = Color(0x335B7CFA); // accent at ~20%
+
+  // ── Ambient canvas gradient ───────────────────────────────────────────
+  // The canvas is never flat — a subtle top→bottom dark-to-darker gradient
+  // gives the whole app atmosphere, like light falling off toward the floor.
+  // Drawn by the scaffold, behind every card.
+  static const canvasTop = Color(0xFF0E131D); // slightly lighter at top
+  static const canvasBottom = Color(0xFF070A10); // deeper at base
 }

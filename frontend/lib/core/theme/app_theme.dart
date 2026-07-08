@@ -20,12 +20,14 @@ class AppTheme {
       brightness: Brightness.dark,
       colorScheme: colors,
       textTheme: text,
-      scaffoldBackgroundColor: AppColors.canvas,
+      // Transparent — the ambient gradient (painted by the app shell in
+      // main.dart) shows through. A flat solid canvas kills depth.
+      scaffoldBackgroundColor: Colors.transparent,
 
       // ── App bar: flush with the canvas, hairline divider when scrolled ──
       appBarTheme: AppBarTheme(
         centerTitle: false,
-        backgroundColor: AppColors.canvas,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,

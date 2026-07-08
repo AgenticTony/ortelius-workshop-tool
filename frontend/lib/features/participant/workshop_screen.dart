@@ -4,12 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/layout.dart';
-import '../../models/models.dart';
-import '../../widgets/empty_state.dart';
 import '../../widgets/error_banner.dart';
 import '../../widgets/glass_card.dart';
+import '../../widgets/idea_feed.dart';
 import '../../widgets/live_indicator.dart';
-import '../../widgets/sticky_note.dart';
 import 'participant_session_controller.dart';
 
 /// The participant's live workshop room: a real-time feed of ideas as sticky
@@ -87,40 +85,18 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
                           .dismissError(),
                     ),
                   ),
-                Expanded(child: _ideaList(state.ideas, state.participantId)),
+                Expanded(
+                  child: IdeaFeed(
+                    ideas: state.ideas,
+                    myParticipantId: state.participantId,
+                    onVote: (ideaId) => ref
+                        .read(participantSessionProvider.notifier)
+                        .vote(ideaId),
+                  ),
+                ),
                 _ideaInput(state.loading),
               ],
             ),
-    );
-  }
-
-  Widget _ideaList(List<Idea> ideas, String? myParticipantId) {
-    if (ideas.isEmpty) {
-      return const EmptyState(
-        icon: Icons.lightbulb_outline_rounded,
-        message: 'No ideas yet',
-        detail: 'Be the first to share one.',
-      );
-    }
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: Layout.dashboardMaxWidth),
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(
-              Layout.padding, 12, Layout.padding, 24),
-          itemCount: ideas.length,
-          itemBuilder: (context, index) {
-            final idea = ideas[index];
-            final isMine = idea.participantId == myParticipantId;
-            return StickyNote(
-              idea: idea,
-              isMine: isMine,
-              onVote: () =>
-                  ref.read(participantSessionProvider.notifier).vote(idea.id),
-            );
-          },
-        ),
-      ),
     );
   }
 

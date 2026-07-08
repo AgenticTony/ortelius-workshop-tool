@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
 import 'core/app_router.dart';
 
@@ -23,6 +24,19 @@ class WorkshopToolApp extends StatelessWidget {
       theme: AppTheme.build(),
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
+      // Paint the ambient canvas gradient behind every screen. A flat solid
+      // background flattens depth; this top→bottom dark-to-darker gradient
+      // gives the whole app atmosphere (light falling off toward the base).
+      builder: (context, child) => DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppColors.canvasTop, AppColors.canvasBottom],
+          ),
+        ),
+        child: child,
+      ),
     );
   }
 }
