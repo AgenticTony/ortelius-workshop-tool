@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -28,6 +29,13 @@ class FacilitatorDashboardScreen extends ConsumerWidget {
       WidgetsBinding.instance.addPostFrameCallback((_) => context.go('/facilitate/new'));
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
+
+    // Reflect the session topic in the browser tab / app-switcher title so the
+    // tab isn't stuck on a generic name while the app bar shows the live topic.
+    // (Web: this updates document.title.)
+    SystemChrome.setApplicationSwitcherDescription(
+      ApplicationSwitcherDescription(label: '${session.topic} · Workshop Tool'),
+    );
 
     final origin = AppConfig.webOrigin;
     final base =
@@ -268,7 +276,8 @@ class _IdeaFeed extends StatelessWidget {
                 ErrorBanner(message: state.error!, onDismiss: onDismissError),
           ),
 
-        // Header (pinned).
+        // Header (pinned). The live indicator lives in the app bar only — no
+        // duplicate here.
         Row(
           children: [
             Expanded(
@@ -285,7 +294,6 @@ class _IdeaFeed extends StatelessWidget {
               ),
               const SizedBox(width: 12),
             ],
-            LiveIndicator(connected: state.connected),
           ],
         ),
         const SizedBox(height: 18),
