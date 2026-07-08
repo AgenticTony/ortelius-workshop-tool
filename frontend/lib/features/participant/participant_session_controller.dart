@@ -165,30 +165,63 @@ class ParticipantSessionController
     }
   }
 
-  /// Upvote an idea. Optimistic update + rollback on failure.
+  /// Toggle a dot-vote on an idea. If already voted, removes the vote;
+  /// otherwise casts one (budget permitting). Optimistic update + rollback.
   Future<void> vote(String ideaId) async {
     final session = state.session;
     if (session == null) return;
 
-    // Optimistically bump the vote count for just this idea.
+    final current = state.ideas.firstWhere(
+      (i) => i.id == ideaId,
+      orElse: () => state.ideas.first, // defensive; shouldn't happen
+    );
+    final wasVoted = current.votedByMe;
+
+    // Budget pre-check before casting a new vote. If the user is trying to
+    // vote (not un-vote) and has already spent the budget, surface the error.
+    if (!wasVoted) {
+      final used = state.ideas.where((i) => i.votedByMe).length;
+      if (used >= session.voteBudget) {
+        state = state.copyWith(
+          error: "You've used all ${session.voteBudget} of your votes.",
+        );
+        return;
+      }
+    }
+
+    // Optimistic toggle: flip votedByMe + adjust the count ±1.
     final updated = state.ideas
-        .map((i) => i.id == ideaId ? i.copyWith(votes: i.votes + 1) : i)
+        .map((i) => i.id == ideaId
+            ? i.copyWith(
+                votes: wasVoted ? i.votes - 1 : i.votes + 1,
+                votedByMe: !wasVoted,
+              )
+            : i)
         .toList();
     state = state.copyWith(ideas: updated, clearError: true);
 
     try {
-      final result = await _api.voteIdea(session.id, ideaId);
-      // Reconcile the single voted idea against the *current* state (which may
-      // include ideas/votes delivered via SSE during the await).
+      final result = wasVoted
+          ? await _api.unvoteIdea(session.id, ideaId)
+          : await _api.voteIdea(session.id, ideaId);
+      // Reconcile this idea against current state (concurrent SSE may have
+      // landed during the await). Trust the server's count + voted_by_me.
       final reconciled = state.ideas
-          .map((i) => i.id == ideaId ? i.copyWith(votes: result.votes) : i)
+          .map((i) => i.id == ideaId
+              ? i.copyWith(votes: result.votes, votedByMe: result.votedByMe)
+              : i)
           .toList();
       state = state.copyWith(ideas: reconciled, clearError: true);
     } catch (e) {
-      // Roll back ONLY this idea's optimistic bump — restoring a whole-state
+      // Roll back ONLY this idea's optimistic toggle — restoring a whole-state
       // snapshot captured pre-await would wipe concurrent SSE updates.
       final rolledBack = state.ideas
-          .map((i) => i.id == ideaId ? i.copyWith(votes: i.votes - 1) : i)
+          .map((i) => i.id == ideaId
+              ? i.copyWith(
+                  votes: wasVoted ? i.votes + 1 : i.votes - 1,
+                  votedByMe: wasVoted,
+                )
+              : i)
           .toList();
       state = state.copyWith(ideas: rolledBack, error: '$e');
     }
@@ -260,8 +293,21 @@ class ParticipantSessionController
         final ideaId = event.data['idea_id'] as String?;
         final votes = (event.data['votes'] as num?)?.toInt();
         if (ideaId == null || votes == null) return;
+        // Dot-voting: the payload now carries who voted and whether it was a
+        // vote or an unvote. If *we* were the actor, update our votedByMe flag
+        // (it's already correct via the optimistic update, but this covers
+        // reconnect/reload reconciliation).
+        final voterId = event.data['voter_id'] as String?;
+        final action = event.data['action'] as String?;
+        final isMine = voterId != null && voterId == state.participantId;
+        final votedByMe = isMine ? (action != 'unvote') : null;
         final updated = state.ideas
-            .map((i) => i.id == ideaId ? i.copyWith(votes: votes) : i)
+            .map((i) => i.id == ideaId
+                ? i.copyWith(
+                    votes: votes,
+                    votedByMe: votedByMe ?? i.votedByMe,
+                  )
+                : i)
             .toList();
         state = state.copyWith(ideas: updated);
       case SseEventType.participantJoined:

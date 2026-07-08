@@ -144,3 +144,46 @@ class AccessCodeCollisionError(WorkshopError):
 
     def __init__(self) -> None:
         super().__init__("Could not generate a unique access code. Please retry.")
+
+
+# ── Conflict / forbidden (409, 403) ────────────────────────────
+
+
+class VoteBudgetExceededError(WorkshopError):
+    """Participant has spent their full dot-voting budget for the session."""
+
+    status_code = 409
+    code = "vote_budget_exceeded"
+
+    def __init__(self, detail: str = "You've used all your votes for this session."):
+        super().__init__(detail)
+
+
+class AlreadyVotedError(WorkshopError):
+    """Participant already voted on this idea (dot-voting = one per idea)."""
+
+    status_code = 409
+    code = "already_voted"
+
+    def __init__(self) -> None:
+        super().__init__("You've already voted on this idea.")
+
+
+class NotVotedError(WorkshopError):
+    """Participant tried to remove a vote they never cast."""
+
+    status_code = 404
+    code = "not_voted"
+
+    def __init__(self) -> None:
+        super().__init__("You haven't voted on this idea.")
+
+
+class ForbiddenError(WorkshopError):
+    """The authenticated caller isn't permitted to perform this action."""
+
+    status_code = 403
+    code = "forbidden"
+
+    def __init__(self, detail: str = "You don't have permission to do that."):
+        super().__init__(detail)

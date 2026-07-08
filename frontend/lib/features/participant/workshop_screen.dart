@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/layout.dart';
+import '../../models/idea.dart';
 import '../../widgets/error_banner.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/idea_feed.dart';
@@ -71,6 +72,11 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
       appBar: AppBar(
         title: Text(session?.topic ?? 'Workshop'),
         actions: [
+          if (session != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Center(child: _VoteBudget(ideas: state.ideas, budget: session.voteBudget)),
+            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Center(child: LiveIndicator(connected: state.connected)),
@@ -156,6 +162,48 @@ class _WorkshopScreenState extends ConsumerState<WorkshopScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Shows how many dot-votes the participant has left to spend.
+class _VoteBudget extends StatelessWidget {
+  const _VoteBudget({required this.ideas, required this.budget});
+  final List<Idea> ideas;
+  final int budget;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final used = ideas.where((i) => i.votedByMe).length;
+    final remaining = budget - used;
+    final exhausted = remaining <= 0;
+    final color = exhausted ? theme.colorScheme.onSurfaceVariant : AppColors.accent;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: exhausted ? AppColors.surfaceRaised : AppColors.accentSoft,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            exhausted ? Icons.check_circle_rounded : Icons.how_to_vote_rounded,
+            size: 15,
+            color: color,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            exhausted ? 'All votes used' : '$remaining vote${remaining == 1 ? '' : 's'} left',
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

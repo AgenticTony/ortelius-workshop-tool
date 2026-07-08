@@ -9,6 +9,7 @@ class Idea {
     this.category,
     required this.votes,
     required this.createdAt,
+    this.votedByMe = false,
   });
 
   final String id;
@@ -20,6 +21,11 @@ class Idea {
   final int votes;
   final DateTime createdAt;
 
+  /// Whether the calling participant has voted on this idea. Computed by the
+  /// backend per-request (from the idea_votes table); defaults false on
+  /// creation or where the caller's identity isn't relevant.
+  final bool votedByMe;
+
   factory Idea.fromJson(Map<String, dynamic> json) {
     return Idea(
       id: json['id'] as String,
@@ -30,6 +36,8 @@ class Idea {
       category: json['category'] as String?,
       votes: (json['votes'] as num).toInt(),
       createdAt: DateTime.parse(json['created_at'] as String),
+      // Back-compat: older backends don't send this; treat absence as false.
+      votedByMe: (json['voted_by_me'] as bool?) ?? false,
     );
   }
 
@@ -42,6 +50,7 @@ class Idea {
         'category': category,
         'votes': votes,
         'created_at': createdAt.toIso8601String(),
+        'voted_by_me': votedByMe,
       };
 
   /// Body for POST /sessions/{id}/ideas.
@@ -58,7 +67,7 @@ class Idea {
         if (category != null) 'category': category,
       };
 
-  Idea copyWith({int? votes}) => Idea(
+  Idea copyWith({int? votes, bool? votedByMe}) => Idea(
         id: id,
         sessionId: sessionId,
         participantId: participantId,
@@ -67,8 +76,9 @@ class Idea {
         category: category,
         votes: votes ?? this.votes,
         createdAt: createdAt,
+        votedByMe: votedByMe ?? this.votedByMe,
       );
 
   @override
-  String toString() => 'Idea(id: $id, votes: $votes, content: "$content")';
+  String toString() => 'Idea(id: $id, votes: $votes, votedByMe: $votedByMe, content: "$content")';
 }

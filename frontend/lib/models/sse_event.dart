@@ -6,7 +6,9 @@ import 'idea.dart';
 /// Mirrors the backend event_bus event types. The `data` payload shape
 /// depends on `type`:
 ///  - idea_added          -> full [Idea]
-///  - idea_voted          -> {idea_id, votes}
+///  - idea_voted          -> {idea_id, votes, voter_id?, action?}
+///                           (voter_id + action added with dot-voting;
+///                            absent on older backends)
 ///  - participant_joined  -> {participant_id, name, participant_count}
 enum SseEventType { ideaAdded, ideaVoted, participantJoined, unknown }
 
