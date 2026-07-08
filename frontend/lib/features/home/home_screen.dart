@@ -29,15 +29,16 @@ class HomeScreen extends StatelessWidget {
               // ── Hero: glass tile holding the app mark ───────────────
               StaggeredReveal(
                 index: 0,
-                child: GlassCard(
-                  blur: true,
-                  radius: 16,
-                  glow: true,
-                  padding: const EdgeInsets.all(16),
-                  child: const Icon(
-                    Icons.forum_rounded,
-                    size: 32,
-                    color: AppColors.accent,
+                child: GlowWrapper(
+                  child: GlassCard(
+                    blur: true,
+                    radius: 16,
+                    padding: const EdgeInsets.all(16),
+                    child: const Icon(
+                      Icons.forum_rounded,
+                      size: 32,
+                      color: AppColors.accent,
+                    ),
                   ),
                 ),
               ),

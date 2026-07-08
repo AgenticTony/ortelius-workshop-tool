@@ -1,122 +1,86 @@
 import 'package:flutter/material.dart';
 
-/// Workshop Tool palette — "Dark, technical, corporate."
+/// Workshop Tool palette — "Light, corporate, projector-first."
 ///
-/// A near-black slate canvas with one disciplined accent. The register is
-/// Linear / Vercel / Raycast: a serious tool that earns trust by being quiet
-/// and precise, not by decorating. No warm off-white, no templated gradients.
+/// A bright neutral canvas that holds contrast under room lighting and on
+/// shared TVs/projectors (dark themes wash out and glare in lit rooms).
+/// One disciplined brand accent (teal) + a deep navy for headline numbers.
+///
+/// Swap `accent` / `navy` for official Ortelius brand colors when available —
+/// nothing else needs to change.
 abstract class AppColors {
   AppColors._();
 
-  // ── Core surfaces (dark slate, cool not flat-black) ───────────────────
-  /// App background — deep slate (#0B0F17). Not pure black; pure black
-  /// flattens depth and looks harsh. Slate gives the surface a substrate.
-  static const canvas = Color(0xFF0B0F17);
+  // ── Core surfaces ──────────────────────────────────────────────────────
+  static const canvas = Color(0xFFF4F7FA); // app background
+  static const surface = Color(0xFFFFFFFF); // cards
+  static const surfaceRaised = Color(0xFFEFF3F8); // inputs / hovered tiles
+  static const border = Color(0xFFD8E0EA); // 2px card borders
+  static const borderStrong = Color(0xFFB9C6D6);
 
-  /// Primary card / elevated surface.
-  static const surface = Color(0xFF141A24);
+  // ── Text (high contrast for back-of-room legibility) ───────────────────
+  static const textPrimary = Color(0xFF0B1524);
+  static const textSecondary = Color(0xFF3E4E63);
+  static const textTertiary = Color(0xFF7A8AA0);
 
-  /// Higher-elevation surface (inputs, hovered tiles).
-  static const surfaceRaised = Color(0xFF1C2330);
+  // ── Brand accent ───────────────────────────────────────────────────────
+  static const accent = Color(0xFF0E7C7B); // teal — primary actions
+  static const accentDeep = Color(0xFF0A5F5E); // hover/pressed
+  static const accentSoft = Color(0xFFE2F1F0); // tint fills
+  static const navy = Color(0xFF12324A); // headline numbers / code
 
-  /// Hairline borders — barely visible, just enough to define edges.
-  static const border = Color(0xFF242C3A);
+  // ── Semantic ───────────────────────────────────────────────────────────
+  static const live = Color(0xFF0E9E4A);
+  static const danger = Color(0xFFD1342B);
+  static const vote = Color(0xFFC8720A); // amber vote pill
+  static const voteSoft = Color(0xFFFBF0E0);
+  static const gold = Color(0xFFB8860B); // top-voted highlight
+  static const goldSoft = Color(0xFFFBF3DE);
 
-  /// Stronger border for focus / active states.
-  static const borderStrong = Color(0xFF3A4555);
+  // ── Sticky note fills ──────────────────────────────────────────────────
+  static const stickyNote = Color(0xFFFFFFFF);
+  static const stickyNoteMine = Color(0xFFF3F9F9);
 
-  // ── Text ──────────────────────────────────────────────────────────────
-  /// Primary text — high-contrast off-white (#E6EAF0). Not pure white;
-  /// pure white on dark is glaring and reduces legibility at length.
-  static const textPrimary = Color(0xFFE6EAF0);
+  // ── Backward-compat aliases ────────────────────────────────────────────
+  // The dark-theme motion layer referenced these. On light, the glass/glow
+  // effects are gone (they don't read on a bright canvas), so these aliases
+  // route to the closest equivalent so untouched widgets still compile and
+  // look right. New code should prefer the named tokens above.
+  static const accentMuted = accentSoft;
+  static const shadowOuter = Color(0x1A0B1524); // ~10% ink, soft
+  static const shadowOuterStrong = Color(0x330B1524);
+  static const glassHighlight = Color(0x66FFFFFF);
+  static const accentGlow = Color(0x330E7C7B);
+  static const canvasTop = canvas;
+  static const canvasBottom = canvas;
 
-  /// Secondary text — labels, captions, metadata.
-  static const textSecondary = Color(0xFF8B95A7);
-
-  /// Tertiary / disabled.
-  static const textTertiary = Color(0xFF5B6577);
-
-  // ── Accent (one disciplined color — the whole brand) ─────────────────
-  /// Indigo (#5B7CFA). Used for primary actions, active states, focus rings.
-  /// Picked to read as "technical / product" on dark, not playful.
-  static const accent = Color(0xFF5B7CFA);
-
-  /// Accent at lower opacity for fills (primary-container equivalent).
-  static const accentMuted = Color(0xFF1E2A4A);
-
-  // ── Semantic ──────────────────────────────────────────────────────────
-  /// Live / connected / success — emerald, used ONLY for the live indicator
-  /// and success states. Never decorative.
-  static const live = Color(0xFF10B981);
-
-  /// Error / destructive.
-  static const danger = Color(0xFFEF4444);
-
-  /// Vote / highlight on sticky notes — kept as a quiet amber, not the brand.
-  static const vote = Color(0xFFF59E0B);
-
-  // ── ColorScheme (assembled for Material components) ──────────────────
-  // Dark-only by design — see main.dart (no themeMode flip).
+  // ── ColorScheme (light) ────────────────────────────────────────────────
   static const scheme = ColorScheme(
-    brightness: Brightness.dark,
+    brightness: Brightness.light,
     primary: accent,
     onPrimary: Color(0xFFFFFFFF),
-    primaryContainer: accentMuted,
-    onPrimaryContainer: Color(0xFFB4C5FF),
+    primaryContainer: accentSoft,
+    onPrimaryContainer: accentDeep,
     secondary: vote,
-    onSecondary: Color(0xFF1A1300),
-    secondaryContainer: Color(0xFF2A1F08),
-    onSecondaryContainer: Color(0xFFFDE68A),
-    tertiary: Color(0xFF64748B),
+    onSecondary: Color(0xFFFFFFFF),
+    secondaryContainer: voteSoft,
+    onSecondaryContainer: Color(0xFF5C3400),
+    tertiary: navy,
     onTertiary: Color(0xFFFFFFFF),
     error: danger,
     onError: Color(0xFFFFFFFF),
-    errorContainer: Color(0xFF3B1414),
-    onErrorContainer: Color(0xFFFECACA),
+    errorContainer: Color(0xFFFCE4E2),
+    onErrorContainer: Color(0xFF5C1512),
     surface: surface,
     onSurface: textPrimary,
-    surfaceContainerLowest: canvas,
-    surfaceContainerLow: surface,
+    surfaceContainerLowest: Color(0xFFFFFFFF),
+    surfaceContainerLow: canvas,
     surfaceContainer: surfaceRaised,
-    surfaceContainerHigh: Color(0xFF222B3B),
-    surfaceContainerHighest: Color(0xFF2A3447),
+    surfaceContainerHigh: Color(0xFFE7EDF4),
+    surfaceContainerHighest: Color(0xFFDFE7F0),
     onSurfaceVariant: textSecondary,
     outline: border,
-    outlineVariant: Color(0xFF1A212C),
-    scrim: Color(0xCC000000),
+    outlineVariant: Color(0xFFE7EDF4),
+    scrim: Color(0x66000000),
   );
-
-  // ── Sticky note fills (the one warm touch — restrained) ──────────────
-  /// Others' idea notes — subtle warm tint on dark.
-  static const stickyNote = Color(0xFF1A1F2E);
-
-  /// Your-own idea note — slightly warmer to mark it.
-  static const stickyNoteMine = Color(0xFF24200C);
-
-  // ── Depth: layered shadows + glow (what makes glass feel real) ───────
-  // Layered shadows are the #1 thing separating "AI flat" from "real product."
-  // A soft outer shadow lifts the card off the canvas; a tight inner-top
-  // shadow gives the recessed-glass read. Brand-tinted glow marks the accent.
-
-  /// Outer drop shadow — soft, large-radius, slate-tinted (NOT pure black,
-  /// which looks harsh). Lifts cards off the canvas.
-  static const shadowOuter = Color(0x33000000); // 20% black
-
-  /// Stronger outer shadow for elevated/hovered cards.
-  static const shadowOuterStrong = Color(0x55000000); // 33% black
-
-  /// Inner-top highlight — the bright edge of light hitting glass. Drawn as
-  /// a hairline lighter than the surface on the top border.
-  static const glassHighlight = Color(0x33FFFFFF); // 20% white
-
-  /// Accent glow — the indigo halo behind primary actions / the live dot.
-  /// Drawn with the accent at low alpha so it reads as ambient light, not paint.
-  static const accentGlow = Color(0x335B7CFA); // accent at ~20%
-
-  // ── Ambient canvas gradient ───────────────────────────────────────────
-  // The canvas is never flat — a subtle top→bottom dark-to-darker gradient
-  // gives the whole app atmosphere, like light falling off toward the floor.
-  // Drawn by the scaffold, behind every card.
-  static const canvasTop = Color(0xFF0E131D); // slightly lighter at top
-  static const canvasBottom = Color(0xFF070A10); // deeper at base
 }
