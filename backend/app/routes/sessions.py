@@ -117,6 +117,7 @@ def _to_session(db_session: SessionDB) -> Session:
         status=db_session.status,
         participants=[Participant(id=p.id, name=p.name, joined_at=p.joined_at) for p in db_session.participants],
         created_at=db_session.created_at,
+        vote_budget=db_session.vote_budget,
         # facilitator_token intentionally omitted: only set on the create response.
     )
 

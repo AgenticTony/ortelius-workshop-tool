@@ -60,7 +60,11 @@ class StickyNote extends StatelessWidget {
           children: [
             Expanded(child: _body(theme)),
             const SizedBox(width: 8),
-            _VoteControl(votes: idea.votes, onTap: onVote),
+            _VoteControl(
+              votes: idea.votes,
+              isVoted: idea.votedByMe,
+              onTap: onVote,
+            ),
           ],
         ),
       ),
@@ -120,20 +124,31 @@ class _YoursTag extends StatelessWidget {
   }
 }
 
-/// The vote control — a tap target with the count below an arrow.
-/// Preserves the 48×48 minimum tap target + semantic label from the original.
+/// The dot-voting control — a toggle. Filled teal when you've voted (tap again
+/// to take the dot back), outline when you haven't. Preserves the 48×48 minimum
+/// tap target and carries a state-aware semantic label.
 class _VoteControl extends StatelessWidget {
-  const _VoteControl({required this.votes, required this.onTap});
+  const _VoteControl({
+    required this.votes,
+    required this.isVoted,
+    required this.onTap,
+  });
   final int votes;
+  final bool isVoted;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final color = isVoted ? AppColors.accent : theme.colorScheme.onSurfaceVariant;
+    final label = isVoted
+        ? 'Voted, $votes ${votes == 1 ? 'vote' : 'votes'}'
+        : 'Upvote, $votes ${votes == 1 ? 'vote' : 'votes'}';
+    final hint = isVoted ? 'Tap to remove your vote' : 'Tap to vote for this idea';
     return Semantics(
       button: true,
-      label: 'Upvote, $votes ${votes == 1 ? 'vote' : 'votes'}',
-      hint: 'Tap to upvote this idea',
+      label: label,
+      hint: hint,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
         child: Material(
@@ -141,21 +156,35 @@ class _VoteControl extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(12),
-            child: Padding(
+            child: Container(
+              decoration: BoxDecoration(
+                // A subtle teal fill marks "voted" — the dot you placed.
+                color: isVoted
+                    ? AppColors.accent.withValues(alpha: 0.12)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                border: isVoted
+                    ? Border.all(
+                        color: AppColors.accent.withValues(alpha: 0.4), width: 1.5)
+                    : null,
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.arrow_upward_rounded,
+                    isVoted
+                        ? Icons.arrow_upward_rounded
+                        : Icons.arrow_upward_rounded,
                     size: 20,
-                    color: theme.colorScheme.onSurfaceVariant,
+                    color: color,
                   ),
                   const SizedBox(height: 1),
                   Text(
                     '$votes',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: isVoted ? FontWeight.w800 : FontWeight.w600,
+                      color: color,
                     ),
                   ),
                 ],

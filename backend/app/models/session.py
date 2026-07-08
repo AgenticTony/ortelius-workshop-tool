@@ -23,6 +23,9 @@ class SessionCreate(BaseModel):
     topic: str
     framework: str = "swot"
     custom_categories: list[str] = []
+    # Dot-voting: max votes each participant may cast across the session.
+    # No create-session UI exposes this yet — default 3 (classic dot-voting).
+    vote_budget: int = 3
 
     @model_validator(mode="after")
     def validate_framework(self) -> "SessionCreate":

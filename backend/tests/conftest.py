@@ -73,6 +73,16 @@ def participant_headers(sample_participant) -> dict:
 
 
 @pytest.fixture
+def second_participant_headers(client, sample_session) -> dict:
+    """A SECOND participant in the same session — for cross-participant tests."""
+    response = client.post(
+        f"/sessions/{sample_session['id']}/join", json={"name": "Mohand"}
+    )
+    assert response.status_code == 200, response.text
+    return {"Authorization": f"Bearer {response.json()['participant_token']}"}
+
+
+@pytest.fixture
 def auth_headers():
     """Return a helper that builds Authorization headers from a session dict.
 

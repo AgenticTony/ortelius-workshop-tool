@@ -114,9 +114,15 @@ class WorkshopApi {
         .toList();
   }
 
-  /// POST /sessions/{id}/ideas/{ideaId}/vote
+  /// POST /sessions/{id}/ideas/{ideaId}/vote — cast a dot-vote.
   Future<Idea> voteIdea(String sessionId, String ideaId) async {
     final res = await _dio.post('/sessions/$sessionId/ideas/$ideaId/vote');
+    return Idea.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// DELETE /sessions/{id}/ideas/{ideaId}/vote — remove a dot-vote (un-vote).
+  Future<Idea> unvoteIdea(String sessionId, String ideaId) async {
+    final res = await _dio.delete('/sessions/$sessionId/ideas/$ideaId/vote');
     return Idea.fromJson(res.data as Map<String, dynamic>);
   }
 

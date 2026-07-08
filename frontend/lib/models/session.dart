@@ -16,6 +16,7 @@ class Session {
     required this.participants,
     required this.createdAt,
     this.facilitatorToken,
+    this.voteBudget = 3,
   });
 
   final String id;
@@ -29,6 +30,9 @@ class Session {
 
   /// Plaintext facilitator token. Only present on POST /sessions responses.
   final String? facilitatorToken;
+
+  /// Dot-voting: max votes each participant may cast across the session.
+  final int voteBudget;
 
   factory Session.fromJson(Map<String, dynamic> json) {
     return Session(
@@ -44,6 +48,8 @@ class Session {
           .toList(),
       createdAt: DateTime.parse(json['created_at'] as String),
       facilitatorToken: json['facilitator_token'] as String?,
+      // Back-compat: older backends don't send this; default to 3.
+      voteBudget: (json['vote_budget'] as num?)?.toInt() ?? 3,
     );
   }
 

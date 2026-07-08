@@ -21,3 +21,8 @@ class Idea(IdeaCreate):
     session_id: str
     votes: int = 0
     created_at: datetime = Field(default_factory=_utcnow)
+    # Computed per-request: did the calling participant vote on this idea?
+    # Not stored on the row — populated by the route layer from the
+    # idea_votes table. False on create/list-default paths where the caller's
+    # identity isn't relevant (e.g. facilitator reads).
+    voted_by_me: bool = False
